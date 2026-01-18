@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { Room, RoomProduct } from '@/app/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Trash2, DollarSign } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLocale } from '@/app/components/locale-provider';
 import ProductSelectorDialog from './product-selector-dialog';
@@ -41,7 +41,7 @@ export default function RoomCard({
   }, [room.products]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(value);
   };
   
   return (

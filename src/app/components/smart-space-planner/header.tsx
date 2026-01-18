@@ -20,7 +20,7 @@ export default function Header({ totalCost, onAddRoom }: HeaderProps) {
   const { t, setLocale, locale } = useLocale();
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(value);
   };
   
   return (
