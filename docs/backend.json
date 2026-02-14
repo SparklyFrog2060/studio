@@ -22,6 +22,10 @@
           "type": "number",
           "description": "The price of the sensor."
         },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
+        },
         "priceEvaluation": {
           "type": "string",
           "enum": [
@@ -138,6 +142,10 @@
           "type": "number",
           "description": "The price of the switch."
         },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
+        },
         "priceEvaluation": {
           "type": "string",
           "enum": [
@@ -246,6 +254,10 @@
         "price": {
           "type": "number",
           "description": "The price of the voice assistant."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
         },
         "priceEvaluation": {
           "type": "string",
@@ -359,6 +371,10 @@
         "price": {
           "type": "number",
           "description": "The price of the gateway."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
         },
         "priceEvaluation": {
           "type": "string",
@@ -475,6 +491,10 @@
           "type": "number",
           "description": "The price of the device."
         },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
+        },
         "priceEvaluation": {
           "type": "string",
           "enum": ["good", "medium", "bad"],
@@ -548,6 +568,10 @@
         "price": {
           "type": "number",
           "description": "The price of the device."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this device that are already owned."
         },
         "priceEvaluation": {
           "type": "string",
@@ -739,5 +763,3 @@
     }
   }
 }
-
-    

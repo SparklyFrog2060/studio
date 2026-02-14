@@ -30,6 +30,7 @@ const formSchema = z.object({
   brand: z.string().min(1, "Marka jest wymagana."),
   link: z.string().url("Niepoprawny URL.").optional().or(z.literal('')),
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
+  quantity: z.coerce.number().min(0, "Ilość nie może być ujemna.").optional(),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
   connectivity: z.array(z.string()).min(1, "Wybierz co najmniej jedną opcję łączności."),
   homeAssistantCompatibility: z.coerce.number().min(1).max(5),
@@ -61,6 +62,7 @@ export default function AddGatewayForm({ onSubmit, isSaving, initialData }: AddG
       brand: "",
       link: "",
       price: 0,
+      quantity: 0,
       priceEvaluation: "medium",
       connectivity: [],
       homeAssistantCompatibility: 5,
@@ -179,51 +181,63 @@ export default function AddGatewayForm({ onSubmit, isSaving, initialData }: AddG
                 </FormItem>
               )}
             />
-             <div>
-              <Label>{t.price}</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input type="number" placeholder={t.pricePlaceholder} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="priceEvaluation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex space-x-4 items-center h-full"
-                        >
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="good" /></FormControl>
-                            <FormLabel className="font-normal text-green-600">{t.good}</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="medium" /></FormControl>
-                            <FormLabel className="font-normal text-yellow-600">{t.medium}</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="bad" /></FormControl>
-                            <FormLabel className="font-normal text-red-600">{t.bad}</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.price}</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder={t.pricePlaceholder} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.quantityOwned}</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+            <FormField
+              control={form.control}
+              name="priceEvaluation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.priceEvaluation}</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4 items-center h-full"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="good" /></FormControl>
+                        <FormLabel className="font-normal text-green-600">{t.good}</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="medium" /></FormControl>
+                        <FormLabel className="font-normal text-yellow-600">{t.medium}</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="bad" /></FormControl>
+                        <FormLabel className="font-normal text-red-600">{t.bad}</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
@@ -399,5 +413,3 @@ export default function AddGatewayForm({ onSubmit, isSaving, initialData }: AddG
     </Card>
   );
 }
-
-    

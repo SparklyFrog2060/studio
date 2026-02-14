@@ -62,33 +62,6 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
 
   const assignedGatewayIds = useMemo(() => houseConfig?.gatewayIds || [], [houseConfig]);
 
-  const neededProtocols = useMemo((): Set<GatewayConnectivity> => {
-    const protocolSet = new Set<GatewayConnectivity>();
-    if (!rooms || !sensors || !switches || !lighting || !otherDevices) return protocolSet;
-
-    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
-    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
-    const allAssignedLightingIds = new Set(rooms.flatMap(r => r.lightingIds || []));
-    const allAssignedOtherDeviceIds = new Set(rooms.flatMap(r => r.otherDeviceIds || []));
-
-    const checkProtocols = (devices: {id: string, connectivity: Connectivity}[], assignedIds: Set<string>) => {
-      devices?.forEach(device => {
-        if (assignedIds.has(device.id)) {
-          if (device.connectivity === 'zigbee' || device.connectivity === 'matter') {
-            protocolSet.add(device.connectivity);
-          }
-        }
-      });
-    };
-
-    checkProtocols(sensors || [], allAssignedSensorIds);
-    checkProtocols(switches || [], allAssignedSwitchIds);
-    checkProtocols(lighting || [], allAssignedLightingIds);
-    checkProtocols(otherDevices || [], allAssignedOtherDeviceIds);
-
-    return protocolSet;
-  }, [rooms, sensors, switches, lighting, otherDevices]);
-
   const assignedGateways = useMemo(() => {
     if (!gateways || !assignedGatewayIds) return [];
     return gateways.filter(g => assignedGatewayIds.includes(g.id));
@@ -122,38 +95,61 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
     if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices || !gateways) return [];
 
-    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
-    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
-    const allAssignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds || []));
-    const allAssignedLightingIds = new Set(rooms.flatMap(r => r.lightingIds || []));
-    const allAssignedOtherDeviceIds = new Set(rooms.flatMap(r => r.otherDeviceIds || []));
+    const itemsToBuy: ShoppingListItem[] = [];
 
-    const assignedSensors = sensors
-        .filter(s => allAssignedSensorIds.has(s.id))
-        .map(s => ({ name: s.name, price: s.price || 0, type: 'Sensor' as const, link: s.link }));
+    const calculateItemsToBuy = (
+        assignedIds: string[], 
+        allDevices: (Sensor | Switch | Lighting | OtherDevice | VoiceAssistant)[],
+        type: ShoppingListItem['type']
+    ) => {
+        if (!allDevices) return;
 
-    const assignedSwitches = switches
-        .filter(s => allAssignedSwitchIds.has(s.id))
-        .map(s => ({ name: s.name, price: s.price || 0, type: 'Switch' as const, link: s.link }));
-    
-    const assignedAssistants = voiceAssistants
-        .filter(v => allAssignedAssistantIds.has(v.id))
-        .map(v => ({ name: v.name, price: v.price || 0, type: 'VoiceAssistant' as const, link: v.link }));
-    
-    const assignedLighting = lighting
-        .filter(l => allAssignedLightingIds.has(l.id))
-        .map(l => ({ name: l.name, price: l.price || 0, type: 'Lighting' as const, link: l.link }));
-    
-    const assignedOtherDevices = otherDevices
-        .filter(d => allAssignedOtherDeviceIds.has(d.id))
-        .map(d => ({ name: d.name, price: d.price || 0, type: 'OtherDevice' as const, link: d.link }));
-        
-    const gatewayItems = assignedGateways
-      .filter(g => g.connectivity.some(p => neededProtocols.has(p)))
-      .map(g => ({ name: g.name, price: g.price || 0, type: 'Gateway' as const, link: g.link }));
+        const assignedCounts = new Map<string, number>();
+        for (const id of assignedIds) {
+            assignedCounts.set(id, (assignedCounts.get(id) || 0) + 1);
+        }
 
-    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices, ...gatewayItems];
-  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, assignedGateways, neededProtocols, gateways]);
+        for (const [deviceId, assignedCount] of assignedCounts.entries()) {
+            const device = allDevices.find(d => d.id === deviceId);
+            if (!device) continue;
+
+            const ownedCount = device.quantity || 0;
+            const toBuyCount = Math.max(0, assignedCount - ownedCount);
+
+            for (let i = 0; i < toBuyCount; i++) {
+                itemsToBuy.push({
+                    name: device.name,
+                    price: device.price || 0,
+                    type: type,
+                    link: device.link,
+                });
+            }
+        }
+    };
+
+    calculateItemsToBuy(rooms.flatMap(r => r.sensorIds || []), sensors, 'Sensor');
+    calculateItemsToBuy(rooms.flatMap(r => r.switchIds || []), switches, 'Switch');
+    calculateItemsToBuy(rooms.flatMap(r => r.voiceAssistantIds || []), voiceAssistants, 'VoiceAssistant');
+    calculateItemsToBuy(rooms.flatMap(r => r.lightingIds || []), lighting, 'Lighting');
+    calculateItemsToBuy(rooms.flatMap(r => r.otherDeviceIds || []), otherDevices, 'OtherDevice');
+
+    // Handle gateways separately as they are assigned to the house
+    assignedGateways.forEach(gateway => {
+        const ownedCount = gateway.quantity || 0;
+        const toBuyCount = Math.max(0, 1 - ownedCount); // Assume 1 is needed if assigned
+
+        if(toBuyCount > 0) {
+             itemsToBuy.push({
+                name: gateway.name,
+                price: gateway.price || 0,
+                type: 'Gateway' as const,
+                link: gateway.link,
+             });
+        }
+    });
+
+    return itemsToBuy;
+  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, gateways, assignedGateways]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);

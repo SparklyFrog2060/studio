@@ -16,6 +16,7 @@ export interface Sensor {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
   homeAssistantCompatibility: number;
@@ -32,6 +33,7 @@ export interface Switch {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
   homeAssistantCompatibility: number;
@@ -48,6 +50,7 @@ export interface Lighting {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
   homeAssistantCompatibility: number;
@@ -64,6 +67,7 @@ export interface OtherDevice {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
   homeAssistantCompatibility: number;
@@ -79,6 +83,7 @@ export interface VoiceAssistant {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   homeAssistantCompatibility: number;
   score: number;
@@ -95,6 +100,7 @@ export interface Gateway {
   brand: string;
   link?: string;
   price: number;
+  quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: GatewayConnectivity[];
   homeAssistantCompatibility: number;
@@ -125,5 +131,3 @@ export interface Room {
 export interface HouseConfig {
   gatewayIds: string[];
 }
-
-    
