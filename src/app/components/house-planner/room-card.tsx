@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins, Lightbulb, Box, AlertTriangle as WarningIcon } from "lucide-react";
 import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Connectivity, GatewayConnectivity } from "@/app/lib/types";
@@ -68,6 +68,29 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
   const { hasMissing: missingLightingGateway, missingDetails: missingLightingDetails } = useMemo(() => checkMissingGateways(room.lightingIds, lighting), [room.lightingIds, lighting, houseGatewayProtocols]);
   const { hasMissing: missingOtherDeviceGateway, missingDetails: missingOtherDeviceDetails } = useMemo(() => checkMissingGateways(room.otherDeviceIds, otherDevices), [room.otherDeviceIds, otherDevices, houseGatewayProtocols]);
 
+  const allMissingDetails = useMemo(() => {
+    const combined: { [protocol: string]: { name: string }[] } = {};
+
+    const processDetails = (details: MissingGatewayDetails[]) => {
+        details.forEach(({ protocol, devices }) => {
+            if (!combined[protocol]) {
+                combined[protocol] = [];
+            }
+            combined[protocol].push(...devices);
+        });
+    };
+
+    processDetails(missingSensorDetails);
+    processDetails(missingSwitchDetails);
+    processDetails(missingLightingDetails);
+    processDetails(missingOtherDeviceDetails);
+
+    return Object.entries(combined).map(([protocol, devices]) => ({
+        protocol,
+        devices,
+    }));
+  }, [missingSensorDetails, missingSwitchDetails, missingLightingDetails, missingOtherDeviceDetails]);
+
   const formatMissingGatewayInfo = (details: MissingGatewayDetails[]): React.ReactNode => {
     if (details.length === 0) return null;
     
@@ -76,8 +99,8 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
             <p className="font-semibold mb-1">Wymagana bramka!</p>
             {details.map(({ protocol, devices }) => (
                 <div key={protocol}>
-                    <p className="capitalize">
-                        <span className="font-medium">{protocol}:</span>{' '}
+                    <p>
+                        <span className="font-medium capitalize">{protocol}:</span>{' '}
                         {devices.map(d => d.name).join(', ')}
                     </p>
                 </div>
@@ -122,11 +145,11 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
           <IconComponent className={cn(
             'text-gray-300',
             hasDevice && color,
-            isMissingGateway && '!text-red-500'
+            isMissingGateway && '!text-yellow-500'
           )} />
           {isMissingGateway && (
               <div className="absolute -top-1 -right-1 rounded-full bg-card p-0.5">
-                <WarningIcon className="h-3 w-3 text-red-500" />
+                <WarningIcon className="h-3 w-3 text-yellow-500" />
               </div>
           )}
         </div>
@@ -153,6 +176,23 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
             )}
           </div>
         </CardHeader>
+        
+        {allMissingDetails.length > 0 && (
+            <CardContent className="pt-2 pb-2">
+                <div className="p-2 rounded-md bg-destructive/10 text-destructive-foreground text-xs">
+                    <p className="font-bold mb-1 text-yellow-600 dark:text-yellow-500">Wymagana bramka!</p>
+                    {allMissingDetails.map(({ protocol, devices }) => (
+                        <div key={protocol}>
+                            <p className="text-yellow-700 dark:text-yellow-600">
+                                <span className="font-semibold capitalize">{protocol}:</span>{' '}
+                                {devices.map(d => d.name).join(', ')}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        )}
+
         <CardFooter className="flex justify-between items-center pt-4">
           <div className="flex gap-3">
             <DeviceIconWithWarning
@@ -214,3 +254,4 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
     </TooltipProvider>
   );
 }
+
