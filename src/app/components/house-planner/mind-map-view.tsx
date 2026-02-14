@@ -49,6 +49,15 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
   const [lines, setLines] = useState<Line[]>([]);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const allDevicesMap = useMemo(() => new Map([
+    ...sensors.map(d => [d.id, { ...d, type: 'sensor' as const }]),
+    ...switches.map(d => [d.id, { ...d, type: 'switch' as const }]),
+    ...lighting.map(d => [d.id, { ...d, type: 'lighting' as const }]),
+    ...otherDevices.map(d => [d.id, { ...d, type: 'otherDevice' as const }]),
+    ...voiceAssistants.map(d => [d.id, { ...d, type: 'voiceAssistant' as const }]),
+  ]), [sensors, switches, lighting, otherDevices, voiceAssistants]);
+
+
   useLayoutEffect(() => {
     const calculatePositions = () => {
         if (!containerRef.current) return;
@@ -124,77 +133,66 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
   }, [activeGateways, rooms, sensors, switches, lighting, otherDevices, t.tuyaCloud, t.localIntegration]);
 
   useLayoutEffect(() => {
-      if (Object.keys(nodePositions).length === 0) return;
+    // Wait until nodes are rendered and have positions
+    if (Object.keys(nodePositions).length === 0) return;
 
-      const newLines: Line[] = [];
-      const midLevelNodeIds = new Set<string>();
+    const newLines: Line[] = [];
 
-      const allDevicesInRooms = rooms.flatMap(room => [
-        ...room.sensorIds.map(id => sensors.find(d => d.id === id)),
-        ...room.switchIds.map(id => switches.find(d => d.id === id)),
-        ...room.lightingIds.map(id => lighting.find(d => d.id === id)),
-        ...room.otherDeviceIds.map(id => otherDevices.find(d => d.id === id)),
-      ]).filter((d): d is Sensor | Switch | Lighting | OtherDevice => !!d);
+    // Part 1: Connect devices to their respective mid-level node
+    const devicesInRooms = rooms.flatMap(room => 
+        [
+            ...room.sensorIds,
+            ...room.switchIds,
+            ...room.lightingIds,
+            ...room.otherDeviceIds
+        ]
+    ).map(deviceId => allDevicesMap.get(deviceId))
+     .filter((d): d is (Sensor | Switch | Lighting | OtherDevice) & { type: string } => !!d);
 
-      allDevicesInRooms.forEach(device => {
+    devicesInRooms.forEach(device => {
         const protocol = getDeviceProtocol(device);
         if (!protocol) return;
 
-        let targetNodeId: string | null = null;
-        
+        let targetNodeId: string | undefined;
+
         if (protocol === 'matter' || protocol === 'zigbee') {
-            const gateway = activeGateways.find(g => ('connectivity' in g ? g.connectivity : g.gatewayProtocols || []).includes(protocol));
-            if (gateway) {
-                targetNodeId = gateway.id;
+            const suitableGateway = activeGateways.find(gw => {
+                const gwProtocols = 'connectivity' in gw ? gw.connectivity : gw.gatewayProtocols;
+                return gwProtocols?.includes(protocol);
+            });
+            if (suitableGateway) {
+                targetNodeId = suitableGateway.id;
             }
-        } else if (protocol === 'tuya') {
+        } 
+        else if (protocol === 'tuya') {
             targetNodeId = 'cloud_tuya';
         } else if (protocol === 'other_app') {
             targetNodeId = 'local_other_app';
         } else if (protocol === 'bluetooth') {
             targetNodeId = 'local_bluetooth';
         }
-
+        
         if (targetNodeId) {
             newLines.push({
                 from: device.id,
                 to: targetNodeId,
-                color: PROTOCOL_COLORS[protocol] || 'gray'
+                color: PROTOCOL_COLORS[protocol] || 'gray',
             });
-            midLevelNodeIds.add(targetNodeId);
         }
-      });
-      
-      activeGateways.forEach(g => {
-        midLevelNodeIds.add(g.id);
-      });
-      
-      const hardcodedNodeIds = ['cloud_tuya', 'local_other_app', 'local_bluetooth'];
-      newLines.forEach(line => {
-        if(hardcodedNodeIds.includes(line.to)) {
-             midLevelNodeIds.add(line.to);
-        }
-      });
+    });
 
-      midLevelNodeIds.forEach(targetId => {
-          newLines.push({
-              from: targetId,
-              to: 'home_assistant',
-              color: 'hsl(var(--muted-foreground))'
-          });
-      });
+    // Part 2: Connect all mid-level nodes to Home Assistant
+    midLevelNodes.forEach(node => {
+        newLines.push({
+            from: node.id,
+            to: 'home_assistant',
+            color: 'hsl(var(--muted-foreground))',
+        });
+    });
 
-      setLines(newLines);
+    setLines(newLines);
 
-  }, [rooms, sensors, switches, lighting, otherDevices, activeGateways, nodePositions, midLevelNodes]);
-
-  const allDevicesMap = new Map([
-    ...sensors.map(d => [d.id, { ...d, type: 'sensor' }]),
-    ...switches.map(d => [d.id, { ...d, type: 'switch' }]),
-    ...lighting.map(d => [d.id, { ...d, type: 'lighting' }]),
-    ...otherDevices.map(d => [d.id, { ...d, type: 'otherDevice' }]),
-    ...voiceAssistants.map(d => [d.id, { ...d, type: 'voiceAssistant' }]),
-  ]);
+}, [nodePositions, rooms, allDevicesMap, activeGateways, midLevelNodes]);
 
   const renderDeviceIcon = (type: string) => {
       switch (type) {
@@ -274,4 +272,3 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     </div>
   );
 }
-
