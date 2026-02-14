@@ -30,6 +30,14 @@ interface Line {
   color: string;
 }
 
+interface UnifiedGatewayNode {
+  id: string;
+  name: string;
+  protocols: GatewayConnectivity[];
+  icon: JSX.Element;
+}
+
+
 const PROTOCOL_COLORS: Record<string, string> = {
   matter: 'hsl(var(--chart-1))',
   zigbee: 'hsl(var(--chart-2))',
@@ -56,6 +64,26 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     ...otherDevices.map(d => [d.id, { ...d, type: 'otherDevice' as const }]),
     ...voiceAssistants.map(d => [d.id, { ...d, type: 'voiceAssistant' as const }]),
   ]), [sensors, switches, lighting, otherDevices, voiceAssistants]);
+  
+  const gatewayNodes = useMemo((): UnifiedGatewayNode[] => {
+    return activeGateways.map(gw => {
+      if ('connectivity' in gw) { // It's a dedicated Gateway
+        return {
+          id: gw.id,
+          name: gw.name,
+          protocols: gw.connectivity,
+          icon: <Router className="h-6 w-6" />,
+        };
+      }
+      // It's a VoiceAssistant with gateway capabilities
+      return {
+        id: gw.id,
+        name: gw.name,
+        protocols: gw.gatewayProtocols || [],
+        icon: <Mic className="h-6 w-6" />,
+      };
+    });
+  }, [activeGateways]);
 
 
   useLayoutEffect(() => {
@@ -94,16 +122,7 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
   }, [floors, rooms, sensors, switches, lighting, otherDevices, voiceAssistants, activeGateways]);
   
   const midLevelNodes = useMemo(() => {
-    const nodes: { id: string; name: string; protocols: string[]; icon: JSX.Element }[] = [];
-
-    activeGateways.forEach(gateway => {
-        nodes.push({
-            id: gateway.id,
-            name: gateway.name,
-            protocols: 'connectivity' in gateway ? gateway.connectivity : gateway.gatewayProtocols || [],
-            icon: 'connectivity' in gateway ? <Router className="h-6 w-6" /> : <Mic className="h-6 w-6" />
-        });
-    });
+    const nodes: UnifiedGatewayNode[] = [...gatewayNodes];
 
     const allAssignedDevices = rooms.flatMap(room => [
         ...room.sensorIds.map(id => sensors.find(d => d.id === id)),
@@ -130,7 +149,7 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     }
 
     return Array.from(new Map(nodes.map(item => [item.id, item])).values());
-  }, [activeGateways, rooms, sensors, switches, lighting, otherDevices, t.tuyaCloud, t.localIntegration]);
+  }, [gatewayNodes, rooms, sensors, switches, lighting, otherDevices, t.tuyaCloud, t.localIntegration]);
 
   useLayoutEffect(() => {
     if (Object.keys(nodePositions).length === 0) return;
@@ -150,13 +169,8 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
         let targetNodeId: string | undefined;
         
         if (protocol === 'matter' || protocol === 'zigbee') {
-            const suitableGateway = activeGateways.find(gw => 
-                // Is it a dedicated gateway with the protocol?
-                ('connectivity' in gw && (gw as Gateway).connectivity.includes(protocol as GatewayConnectivity)) ||
-                // OR is it a voice assistant gateway with the protocol?
-                ('isGateway' in gw && (gw as VoiceAssistant).isGateway && (gw as VoiceAssistant).gatewayProtocols?.includes(protocol as GatewayConnectivity))
-            );
-            targetNodeId = suitableGateway?.id;
+            const suitableGatewayNode = gatewayNodes.find(node => node.protocols.includes(protocol as GatewayConnectivity));
+            targetNodeId = suitableGatewayNode?.id;
         } else if (protocol === 'tuya') {
             targetNodeId = 'cloud_tuya';
         } else if (protocol === 'other_app') {
@@ -183,7 +197,7 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     });
 
     setLines(newLines);
-}, [nodePositions, rooms, allDevicesMap, activeGateways, midLevelNodes]);
+}, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes]);
 
   const renderDeviceIcon = (type: string) => {
       switch (type) {
