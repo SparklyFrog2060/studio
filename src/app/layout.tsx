@@ -6,8 +6,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 
 export const metadata: Metadata = {
-  title: 'Kreator Czujników',
-  description: 'Twórz i zarządzaj swoimi inteligentnymi czujnikami.',
+  title: 'Kreator Urządzeń',
+  description: 'Twórz i zarządzaj swoimi inteligentnymi urządzeniami.',
 };
 
 export default function RootLayout({

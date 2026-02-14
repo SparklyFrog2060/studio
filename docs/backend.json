@@ -24,12 +24,22 @@
         },
         "priceEvaluation": {
           "type": "string",
-          "enum": ["good", "medium", "bad"],
+          "enum": [
+            "good",
+            "medium",
+            "bad"
+          ],
           "description": "The evaluation of the sensor's price."
         },
         "connectivity": {
           "type": "string",
-          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth"],
+          "enum": [
+            "matter",
+            "zigbee",
+            "tuya",
+            "other_app",
+            "bluetooth"
+          ],
           "description": "The connectivity protocol of the sensor."
         },
         "score": {
@@ -59,10 +69,19 @@
               },
               "evaluation": {
                 "type": "string",
-                "enum": ["good", "medium", "bad"]
+                "enum": [
+                  "good",
+                  "medium",
+                  "bad"
+                ]
               }
             },
-            "required": ["id", "name", "value", "evaluation"]
+            "required": [
+              "id",
+              "name",
+              "value",
+              "evaluation"
+            ]
           },
           "description": "A list of technical specifications for the sensor."
         },
@@ -72,7 +91,129 @@
           "description": "The timestamp when the sensor was created."
         }
       },
-      "required": ["name", "brand", "price", "priceEvaluation", "connectivity", "score", "tags", "specs", "createdAt"]
+      "required": [
+        "name",
+        "brand",
+        "price",
+        "priceEvaluation",
+        "connectivity",
+        "score",
+        "tags",
+        "specs",
+        "createdAt"
+      ]
+    },
+    "Switch": {
+      "title": "Switch",
+      "type": "object",
+      "description": "Represents a user-created switch with technical specifications.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the switch."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "wall",
+            "in-wall"
+          ],
+          "description": "The type of the switch."
+        },
+        "brand": {
+          "type": "string",
+          "description": "The brand of the switch."
+        },
+        "link": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL link to the switch's product page."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the switch."
+        },
+        "priceEvaluation": {
+          "type": "string",
+          "enum": [
+            "good",
+            "medium",
+            "bad"
+          ],
+          "description": "The evaluation of the switch's price."
+        },
+        "connectivity": {
+          "type": "string",
+          "enum": [
+            "matter",
+            "zigbee",
+            "tuya",
+            "other_app",
+            "bluetooth"
+          ],
+          "description": "The connectivity protocol of the switch."
+        },
+        "score": {
+          "type": "number",
+          "description": "The calculated score of the switch from 1 to 10."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of tags associated with the switch."
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "evaluation": {
+                "type": "string",
+                "enum": [
+                  "good",
+                  "medium",
+                  "bad"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "value",
+              "evaluation"
+            ]
+          },
+          "description": "A list of technical specifications for the switch."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the switch was created."
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "brand",
+        "price",
+        "priceEvaluation",
+        "connectivity",
+        "score",
+        "tags",
+        "specs",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -87,6 +228,12 @@
           "$ref": "#/entities/Sensor"
         },
         "description": "Collection to store all user-created sensors."
+      },
+      "switches": {
+        "schema": {
+          "$ref": "#/entities/Switch"
+        },
+        "description": "Collection to store all user-created switches."
       }
     }
   }

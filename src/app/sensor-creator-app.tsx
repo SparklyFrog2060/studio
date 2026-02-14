@@ -4,10 +4,13 @@
 import { useState } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
+import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
 import { useToast } from "@/hooks/use-toast";
 import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
-import type { Sensor } from "./lib/types";
+import AddSwitchForm from "./components/switch-creator/add-switch-form";
+import SwitchList from "./components/switch-creator/switch-list";
+import type { Sensor, Switch } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
 import { Languages, Building, Lightbulb, ToggleRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -25,16 +28,24 @@ import {
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
-  const { data: sensors, isLoading } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
-  const [isSaving, setIsSaving] = useState(false);
+
+  // Sensors state
+  const { data: sensors, isLoading: isLoadingSensors } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingSensor, setIsSavingSensor] = useState(false);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
+  
+  // Switches state
+  const { data: switches, isLoading: isLoadingSwitches } = useCollection(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingSwitch, setIsSavingSwitch] = useState(false);
+  const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
+
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<'sensors' | 'switches'>('sensors');
 
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
     if (!db) return;
-    setIsSaving(true);
+    setIsSavingSensor(true);
     try {
       await addSensor(db, data);
       toast({
@@ -49,13 +60,13 @@ export default function SensorCreatorApp() {
         description: "Nie udało się dodać czujnika.",
       });
     } finally {
-      setIsSaving(false);
+      setIsSavingSensor(false);
     }
   };
 
   const handleUpdateSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
     if (!db || !editingSensor) return;
-    setIsSaving(true);
+    setIsSavingSensor(true);
     try {
       await updateSensor(db, editingSensor.id, data);
       toast({
@@ -71,7 +82,7 @@ export default function SensorCreatorApp() {
         description: "Nie udało się zaktualizować czujnika.",
       });
     } finally {
-      setIsSaving(false);
+      setIsSavingSensor(false);
     }
   };
 
@@ -92,6 +103,68 @@ export default function SensorCreatorApp() {
       });
     }
   };
+  
+  const handleAddSwitch = async (data: Omit<Switch, "id" | "createdAt">) => {
+    if (!db) return;
+    setIsSavingSwitch(true);
+    try {
+      await addSwitch(db, data);
+      toast({
+        title: "Sukces!",
+        description: `Włącznik "${data.name}" został dodany.`,
+      });
+    } catch (error) {
+      console.error("Error adding switch: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się dodać włącznika.",
+      });
+    } finally {
+      setIsSavingSwitch(false);
+    }
+  };
+
+  const handleUpdateSwitch = async (data: Omit<Switch, "id" | "createdAt">) => {
+    if (!db || !editingSwitch) return;
+    setIsSavingSwitch(true);
+    try {
+      await updateSwitch(db, editingSwitch.id, data);
+      toast({
+        title: "Sukces!",
+        description: `Włącznik "${data.name}" został zaktualizowany.`,
+      });
+      setEditingSwitch(null);
+    } catch (error) {
+      console.error("Error updating switch: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się zaktualizować włącznika.",
+      });
+    } finally {
+      setIsSavingSwitch(false);
+    }
+  };
+
+  const handleDeleteSwitch = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteSwitch(db, id);
+      toast({
+        title: "Sukces!",
+        description: "Włącznik został usunięty.",
+      });
+    } catch (error) {
+      console.error("Error deleting switch: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się usunąć włącznika.",
+      });
+    }
+  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/20">
@@ -135,28 +208,40 @@ export default function SensorCreatorApp() {
         </header>
 
       <main className="flex-grow container mx-auto p-4 md:p-8">
-        {activeView === 'sensors' ? (
+        {activeView === 'sensors' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-1">
-                    <AddSensorForm onSubmit={handleAddSensor} isSaving={isSaving} />
+                    <AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} />
                 </div>
                 <div className="lg:col-span-2">
-                    {isLoading ? (
+                    {isLoadingSensors ? (
                         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
                     ) : (
                         <SensorList 
-                          sensors={sensors as Sensor[]} 
+                          sensors={sensors as Sensor[] || []} 
                           onDeleteSensor={handleDeleteSensor}
                           onEditSensor={(sensor) => setEditingSensor(sensor)}
                         />
                     )}
                 </div>
             </div>
-        ) : (
-            <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
-                <ToggleRight className="w-20 h-20 text-muted-foreground/50 mb-4" />
-                <h2 className="text-2xl font-semibold text-foreground">{t.switches}</h2>
-                <p className="mt-2">{t.wip}</p>
+        )}
+        {activeView === 'switches' && (
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-1">
+                    <AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} />
+                </div>
+                <div className="lg:col-span-2">
+                    {isLoadingSwitches ? (
+                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+                    ) : (
+                        <SwitchList 
+                          switches={switches as Switch[] || []} 
+                          onDeleteSwitch={handleDeleteSwitch}
+                          onEditSwitch={(switchItem) => setEditingSwitch(switchItem)}
+                        />
+                    )}
+                </div>
             </div>
         )}
       </main>
@@ -167,7 +252,19 @@ export default function SensorCreatorApp() {
             <AddSensorForm
               initialData={editingSensor}
               onSubmit={handleUpdateSensor}
-              isSaving={isSaving}
+              isSaving={isSavingSensor}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={!!editingSwitch} onOpenChange={(isOpen) => !isOpen && setEditingSwitch(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingSwitch && (
+            <AddSwitchForm
+              initialData={editingSwitch}
+              onSubmit={handleUpdateSwitch}
+              isSaving={isSavingSwitch}
             />
           )}
         </DialogContent>

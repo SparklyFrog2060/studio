@@ -4,5 +4,8 @@ service cloud.firestore {
     match /sensors/{sensorId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /switches/{switchId} {
+      allow read, write: if true; // Allow all reads and writes for now
+    }
   }
 }
