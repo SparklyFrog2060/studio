@@ -139,6 +139,11 @@ export const locales = {
     listView: "List View",
     tuyaCloud: "Tuya Cloud",
     localIntegration: "Local Integration",
+    noSensorsCreated: "No sensors have been created yet.",
+    noSwitchesCreated: "No switches have been created yet.",
+    noVoiceAssistantsCreated: "No voice assistants have been created yet.",
+    noLightingCreated: "No lighting devices have been created yet.",
+    noOtherDevicesCreated: "No other devices have been created yet.",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -280,6 +285,11 @@ export const locales = {
     listView: "Widok Listy",
     tuyaCloud: "Chmura Tuya",
     localIntegration: "Lokalna Integracja",
+    noSensorsCreated: "Nie utworzono jeszcze żadnych czujników.",
+    noSwitchesCreated: "Nie utworzono jeszcze żadnych włączników.",
+    noVoiceAssistantsCreated: "Nie utworzono jeszcze żadnych asystentów głosowych.",
+    noLightingCreated: "Nie utworzono jeszcze żadnych urządzeń oświetleniowych.",
+    noOtherDevicesCreated: "Nie utworzono jeszcze żadnych innych urządzeń.",
   },
 };
 

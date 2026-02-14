@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useLocale } from "@/app/components/locale-provider";
 import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
 
@@ -71,7 +70,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t.editRoom}: {room.name}</DialogTitle>
           <DialogDescription>{t.assignDevices}</DialogDescription>
@@ -92,167 +91,172 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <Accordion type="multiple" className="w-full">
               {/* SENSORS */}
-              <div className="space-y-2">
-                <h3 className="font-semibold">{t.sensors}</h3>
-                <Separator />
-                <ScrollArea className="h-48">
-                  <div className="space-y-2 p-1">
-                    {sensors.map(sensor => (
-                      <FormField
-                        key={sensor.id}
-                        control={form.control}
-                        name="sensorIds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(sensor.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), sensor.id])
-                                    : field.onChange(field.value?.filter(id => id !== sensor.id))
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal text-sm">{sensor.name}</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+              <AccordionItem value="sensors">
+                <AccordionTrigger className="text-base font-semibold">{t.sensors}</AccordionTrigger>
+                <AccordionContent>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 p-1">
+                      {sensors.length > 0 ? sensors.map(sensor => (
+                        <FormField
+                          key={sensor.id}
+                          control={form.control}
+                          name="sensorIds"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(sensor.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), sensor.id])
+                                      : field.onChange(field.value?.filter(id => id !== sensor.id))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal text-sm">{sensor.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noSensorsCreated}</p>}
+                    </div>
+                  </ScrollArea>
+                </AccordionContent>
+              </AccordionItem>
 
               {/* SWITCHES */}
-              <div className="space-y-2">
-                <h3 className="font-semibold">{t.switches}</h3>
-                <Separator />
-                <ScrollArea className="h-48">
-                  <div className="space-y-2 p-1">
-                    {switches.map(switchItem => (
-                      <FormField
-                        key={switchItem.id}
-                        control={form.control}
-                        name="switchIds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(switchItem.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), switchItem.id])
-                                    : field.onChange(field.value?.filter(id => id !== switchItem.id))
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal text-sm">{switchItem.name}</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+              <AccordionItem value="switches">
+                <AccordionTrigger className="text-base font-semibold">{t.switches}</AccordionTrigger>
+                <AccordionContent>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 p-1">
+                      {switches.length > 0 ? switches.map(switchItem => (
+                        <FormField
+                          key={switchItem.id}
+                          control={form.control}
+                          name="switchIds"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(switchItem.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), switchItem.id])
+                                      : field.onChange(field.value?.filter(id => id !== switchItem.id))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal text-sm">{switchItem.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noSwitchesCreated}</p>}
+                    </div>
+                  </ScrollArea>
+                </AccordionContent>
+              </AccordionItem>
 
               {/* VOICE ASSISTANTS */}
-              <div className="space-y-2">
-                <h3 className="font-semibold">{t.voiceAssistants}</h3>
-                <Separator />
-                <ScrollArea className="h-48">
-                  <div className="space-y-2 p-1">
-                    {voiceAssistants.map(assistant => (
-                      <FormField
-                        key={assistant.id}
-                        control={form.control}
-                        name="voiceAssistantIds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(assistant.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), assistant.id])
-                                    : field.onChange(field.value?.filter(id => id !== assistant.id))
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal text-sm">{assistant.name}</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+              <AccordionItem value="voice-assistants">
+                <AccordionTrigger className="text-base font-semibold">{t.voiceAssistants}</AccordionTrigger>
+                <AccordionContent>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 p-1">
+                      {voiceAssistants.length > 0 ? voiceAssistants.map(assistant => (
+                        <FormField
+                          key={assistant.id}
+                          control={form.control}
+                          name="voiceAssistantIds"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(assistant.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), assistant.id])
+                                      : field.onChange(field.value?.filter(id => id !== assistant.id))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal text-sm">{assistant.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noVoiceAssistantsCreated}</p>}
+                    </div>
+                  </ScrollArea>
+                </AccordionContent>
+              </AccordionItem>
               
                {/* LIGHTING */}
-              <div className="space-y-2">
-                <h3 className="font-semibold">{t.lighting}</h3>
-                <Separator />
-                <ScrollArea className="h-48">
-                  <div className="space-y-2 p-1">
-                    {lighting.map(item => (
-                      <FormField
-                        key={item.id}
-                        control={form.control}
-                        name="lightingIds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), item.id])
-                                    : field.onChange(field.value?.filter(id => id !== item.id))
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+              <AccordionItem value="lighting">
+                <AccordionTrigger className="text-base font-semibold">{t.lighting}</AccordionTrigger>
+                <AccordionContent>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 p-1">
+                      {lighting.length > 0 ? lighting.map(item => (
+                        <FormField
+                          key={item.id}
+                          control={form.control}
+                          name="lightingIds"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), item.id])
+                                      : field.onChange(field.value?.filter(id => id !== item.id))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noLightingCreated}</p>}
+                    </div>
+                  </ScrollArea>
+                </AccordionContent>
+              </AccordionItem>
 
                {/* OTHER DEVICES */}
-               <div className="space-y-2">
-                <h3 className="font-semibold">{t.otherDevices}</h3>
-                <Separator />
-                <ScrollArea className="h-48">
-                  <div className="space-y-2 p-1">
-                    {otherDevices.map(item => (
-                      <FormField
-                        key={item.id}
-                        control={form.control}
-                        name="otherDeviceIds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), item.id])
-                                    : field.onChange(field.value?.filter(id => id !== item.id))
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
+               <AccordionItem value="other-devices">
+                <AccordionTrigger className="text-base font-semibold">{t.otherDevices}</AccordionTrigger>
+                <AccordionContent>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 p-1">
+                      {otherDevices.length > 0 ? otherDevices.map(item => (
+                        <FormField
+                          key={item.id}
+                          control={form.control}
+                          name="otherDeviceIds"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), item.id])
+                                      : field.onChange(field.value?.filter(id => id !== item.id))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noOtherDevicesCreated}</p>}
+                    </div>
+                  </ScrollArea>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             <DialogFooter>
               <Button type="submit" disabled={isSaving}>
@@ -265,5 +269,3 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
     </Dialog>
   );
 }
-
-    
