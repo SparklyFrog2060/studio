@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -133,9 +134,16 @@ export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom
             {devicesInRoom.length > 0 ? (
                 <ul className="space-y-2">
                     {devicesInRoom.map(item => (
-                        <li key={item.instanceId} className="flex items-center gap-2 text-sm">
-                            <DeviceIcon type={item.baseDevice!.type} className={cn("h-4 w-4", typeToColorClass[item.baseDevice!.type] || 'text-muted-foreground')} />
-                            <span>{item.customName}</span>
+                        <li key={item.instanceId} className="flex items-center justify-between gap-2 text-sm">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <DeviceIcon type={item.baseDevice!.type} className={cn("h-4 w-4 shrink-0", typeToColorClass[item.baseDevice!.type] || 'text-muted-foreground')} />
+                                <span className="truncate" title={item.customName}>{item.customName}</span>
+                            </div>
+                            {!item.isOwned && item.baseDevice?.price != null && item.baseDevice.price > 0 && (
+                                <span className="font-semibold text-primary/90 text-xs shrink-0 whitespace-nowrap">
+                                    + {item.baseDevice.price.toFixed(2)} zł
+                                </span>
+                            )}
                         </li>
                     ))}
                 </ul>
