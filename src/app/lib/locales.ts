@@ -29,6 +29,9 @@ export const locales = {
     language: "Language",
     polish: "Polish",
     english: "English",
+    sensors: "Sensors",
+    switches: "Switches",
+    wip: "This section is under construction.",
   },
   pl: {
     appName: "Kreator Czujników",
@@ -60,6 +63,9 @@ export const locales = {
     language: "Język",
     polish: "Polski",
     english: "Angielski",
+    sensors: "Czujniki",
+    switches: "Włączniki",
+    wip: "Ta sekcja jest w budowie.",
   },
 };
 

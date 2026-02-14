@@ -9,7 +9,7 @@ import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
 import type { Sensor } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building } from 'lucide-react';
+import { Languages, Building, Lightbulb, ToggleRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,6 +24,8 @@ export default function SensorCreatorApp() {
   const { data: sensors, isLoading } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const [activeView, setActiveView] = useState<'sensors' | 'switches'>('sensors');
+
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
     if (!db) return;
@@ -72,6 +74,17 @@ export default function SensorCreatorApp() {
                 <Building className="h-6 w-6 mr-2 text-primary" />
                 <h1 className="text-xl font-bold">{t.appName}</h1>
             </div>
+
+            <nav className="hidden md:flex items-center space-x-1 mx-auto bg-muted p-1 rounded-lg">
+                <Button variant={activeView === 'sensors' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')} className="w-32">
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    {t.sensors}
+                </Button>
+                <Button variant={activeView === 'switches' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
+                    <ToggleRight className="mr-2 h-4 w-4" />
+                    {t.switches}
+                </Button>
+            </nav>
             
             <div className="flex flex-1 items-center justify-end space-x-4">
                 <DropdownMenu>
@@ -95,18 +108,26 @@ export default function SensorCreatorApp() {
         </header>
 
       <main className="flex-grow container mx-auto p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1">
-                <AddSensorForm onAddSensor={handleAddSensor} isSaving={isSaving} />
+        {activeView === 'sensors' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-1">
+                    <AddSensorForm onAddSensor={handleAddSensor} isSaving={isSaving} />
+                </div>
+                <div className="lg:col-span-2">
+                    {isLoading ? (
+                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+                    ) : (
+                        <SensorList sensors={sensors as Sensor[]} onDeleteSensor={handleDeleteSensor} />
+                    )}
+                </div>
             </div>
-            <div className="lg:col-span-2">
-                {isLoading ? (
-                    <p>Ładowanie czujników...</p>
-                ) : (
-                    <SensorList sensors={sensors as Sensor[]} onDeleteSensor={handleDeleteSensor} />
-                )}
+        ) : (
+            <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
+                <ToggleRight className="w-20 h-20 text-muted-foreground/50 mb-4" />
+                <h2 className="text-2xl font-semibold text-foreground">{t.switches}</h2>
+                <p className="mt-2">{t.wip}</p>
             </div>
-        </div>
+        )}
       </main>
     </div>
   );
