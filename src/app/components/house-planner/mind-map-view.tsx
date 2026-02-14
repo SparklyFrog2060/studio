@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -6,7 +5,9 @@ import type { Floor, Room, VoiceAssistant, Gateway, GatewayConnectivity, BaseDev
 import { useLocale } from '../locale-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic } from 'lucide-react';
+import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic, Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface MindMapViewProps {
   floors: Floor[];
@@ -65,6 +66,19 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
   const [nodePositions, setNodePositions] = useState<Record<string, Position>>({});
   const [lines, setLines] = useState<Line[]>([]);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [hiddenRoomIds, setHiddenRoomIds] = useState<Set<string>>(new Set());
+
+  const toggleRoomVisibility = (roomId: string) => {
+    setHiddenRoomIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(roomId)) {
+        newSet.delete(roomId);
+      } else {
+        newSet.add(roomId);
+      }
+      return newSet;
+    });
+  };
 
   const gatewayNodes = useMemo((): UnifiedGatewayNode[] => {
     return activeGateways.map(gw => {
@@ -156,6 +170,8 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     const newLines: Line[] = [];
 
     rooms.forEach(room => {
+        if (hiddenRoomIds.has(room.id)) return; // Don't draw lines for hidden rooms
+
         const protocolsInRoom = new Map<string, string>(); // Map protocol to a target gateway ID
 
         (room.devices || []).forEach(instance => {
@@ -200,7 +216,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     });
 
     setLines(newLines);
-}, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes]);
+}, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes, hiddenRoomIds]);
 
   return (
     <div ref={containerRef} className="relative w-full min-h-[80vh] p-4 bg-muted/30 rounded-lg overflow-auto">
@@ -241,12 +257,28 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
                         </CardHeader>
                         <CardContent className="p-2 flex flex-wrap gap-4 justify-center">
                             {rooms.filter(r => r.floorId === floor.id).map(room => {
+                                const isHidden = hiddenRoomIds.has(room.id);
                                 return (
-                                <Card key={room.id} ref={el => nodeRefs.current[room.id] = el} className="p-3 min-w-[200px] bg-background">
-                                    <CardHeader className="p-1">
+                                <Card 
+                                    key={room.id} 
+                                    ref={el => nodeRefs.current[room.id] = el} 
+                                    className={cn(
+                                        "p-3 min-w-[200px] bg-background transition-opacity",
+                                        isHidden && "opacity-30"
+                                    )}
+                                >
+                                    <CardHeader className="p-1 flex flex-row justify-between items-start">
                                         <CardTitle className="text-base">{room.name}</CardTitle>
+                                         <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6" 
+                                            onClick={(e) => { e.stopPropagation(); toggleRoomVisibility(room.id); }}
+                                        >
+                                            {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
                                     </CardHeader>
-                                    <CardContent className="p-1 flex flex-col gap-2 mt-2">
+                                    <CardContent className={cn("p-1 flex flex-col gap-2 mt-2 transition-opacity", isHidden && "opacity-0")}>
                                         {(room.devices || []).map(instance => {
                                             const device = allDevicesMap.get(instance.deviceId);
                                             if (!device) return null;
