@@ -76,30 +76,17 @@ export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom
 
 
   const { totalPrice, shoppingPrice } = useMemo(() => {
-    const deviceCounts = new Map<string, number>();
-    (room.devices || []).forEach(instance => {
-        deviceCounts.set(instance.deviceId, (deviceCounts.get(instance.deviceId) || 0) + 1);
-    });
-
-    let total = 0;
-    let shopping = 0;
-    const usedOwned = new Map<string, number>();
-
-    for (const instance of (room.devices || [])) {
+    const total = (room.devices || []).reduce((acc, instance) => {
         const device = allDevicesMap.get(instance.deviceId);
-        if (!device) continue;
+        return acc + (device?.price || 0);
+    }, 0);
 
-        total += device.price;
-
-        const owned = device.quantity || 0;
-        const used = usedOwned.get(device.id) || 0;
-
-        if (used < owned) {
-            usedOwned.set(device.id, used + 1);
-        } else {
-            shopping += device.price;
-        }
-    }
+    const shopping = (room.devices || [])
+        .filter(instance => !instance.isOwned)
+        .reduce((acc, instance) => {
+            const device = allDevicesMap.get(instance.deviceId);
+            return acc + (device?.price || 0);
+        }, 0);
     
     return { totalPrice: total, shoppingPrice: shopping };
   }, [room.devices, allDevicesMap]);

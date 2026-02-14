@@ -14,6 +14,7 @@ import { useLocale } from "@/app/components/locale-provider";
 import type { Room, RoomDevice, BaseDevice } from "@/app/lib/types";
 import { Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function DeviceAdder({ devices, onAdd, categoryLabel }: { devices: (BaseDevice & { type: string })[], onAdd: (deviceId: string, quantity: number) => void, categoryLabel: string }) {
   const { t } = useLocale();
@@ -57,6 +58,7 @@ interface EditRoomDialogProps {
   isSaving: boolean;
   room: Room | null;
   allDevicesMap: Map<string, BaseDevice & { type: string }>;
+  allRooms: Room[];
 }
 
 const formSchema = z.object({
@@ -65,12 +67,13 @@ const formSchema = z.object({
     instanceId: z.string(),
     deviceId: z.string(),
     customName: z.string(),
+    isOwned: z.boolean().optional(),
   })),
 });
 
 type RoomFormData = z.infer<typeof formSchema>;
 
-export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, room, allDevicesMap }: EditRoomDialogProps) {
+export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, room, allDevicesMap, allRooms }: EditRoomDialogProps) {
   const { t } = useLocale();
 
   const form = useForm<RoomFormData>({
@@ -78,7 +81,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
     defaultValues: { name: "", devices: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "devices",
     keyName: "key"
@@ -91,7 +94,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
         devices: room.devices || [],
       });
     }
-  }, [room, form]);
+  }, [room, form, isOpen]);
 
   const deviceCategories = useMemo(() => {
     const categories: Record<string, { label: string, devices: (BaseDevice & {type: string})[] }> = {
@@ -118,9 +121,42 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
             instanceId: crypto.randomUUID(),
             deviceId: device.id,
             customName: device.name,
+            isOwned: false,
         });
     }
   };
+
+  const formDevices = form.watch('devices');
+
+  const ownedDeviceStats = useMemo(() => {
+    const stats = new Map<string, { owned: number, used: number }>();
+    allDevicesMap.forEach(device => {
+        stats.set(device.id, { owned: device.quantity || 0, used: 0 });
+    });
+
+    allRooms.forEach(r => {
+        (r.devices || []).forEach(d => {
+            if (d.isOwned && stats.has(d.deviceId)) {
+                const current = stats.get(d.deviceId)!;
+                // For the currently editing room, we use form state, not DB state
+                if (room && r.id === room.id) {
+                    return;
+                }
+                current.used++;
+            }
+        });
+    });
+    // Add usage from the current form state for the room being edited
+    (formDevices || []).forEach(d => {
+      if (d.isOwned && stats.has(d.deviceId)) {
+          const current = stats.get(d.deviceId)!;
+          current.used++;
+      }
+    });
+
+    return stats;
+  }, [allRooms, allDevicesMap, room, formDevices]);
+
 
   if (!room) return null;
 
@@ -157,6 +193,15 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                         {fields.map((field, index) => {
                           const device = allDevicesMap.get(field.deviceId);
                           if (device?.type !== type) return null;
+                          
+                          const stats = ownedDeviceStats.get(field.deviceId);
+                          const totalOwned = stats?.owned || 0;
+                          const totalUsed = stats?.used || 0;
+                          const isChecked = form.getValues(`devices.${index}.isOwned`);
+                          const canCheck = totalUsed < totalOwned;
+
+                          const isDisabled = totalOwned === 0 || (!isChecked && !canCheck);
+
                           return (
                             <div key={field.key} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                                <FormField
@@ -171,6 +216,24 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                                 )}
                               />
                               <span className="text-xs text-muted-foreground whitespace-nowrap">({device.name})</span>
+                              
+                               <FormField
+                                control={form.control}
+                                name={`devices.${index}.isOwned`}
+                                render={({ field: checkboxField }) => (
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={checkboxField.value}
+                                                onCheckedChange={checkboxField.onChange}
+                                                disabled={isDisabled}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="text-xs !mt-0">{t.owned}</FormLabel>
+                                    </FormItem>
+                                )}
+                                />
+                              
                               <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>

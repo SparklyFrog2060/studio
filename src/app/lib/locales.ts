@@ -136,6 +136,7 @@ export const locales = {
     localIntegration: "Local Integration",
     noDevicesOfThisType: "No devices of this type have been created.",
     add: "Add",
+    owned: "Owned",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -274,6 +275,7 @@ export const locales = {
     localIntegration: "Lokalna Integracja",
     noDevicesOfThisType: "Nie utworzono żadnych urządzeń tego typu.",
     add: "Dodaj",
+    owned: "Posiadane",
   },
 };
 

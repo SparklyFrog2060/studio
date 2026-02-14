@@ -63,6 +63,7 @@ export interface RoomDevice {
   instanceId: string;
   deviceId: string;
   customName: string;
+  isOwned?: boolean;
 }
 
 export interface Room {

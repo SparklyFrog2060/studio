@@ -11,7 +11,7 @@ import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, List } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, List, Eye, EyeOff } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -99,42 +99,50 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
     if (!rooms || !allDevicesMap.size) return [];
-
-    const neededCounts = new Map<string, number>();
+    
+    const itemsToBuy: ShoppingListItem[] = [];
+    
+    // Add devices from rooms that are not marked as owned
     rooms.forEach(room => {
-        (room.devices || []).forEach(device => {
-            neededCounts.set(device.deviceId, (neededCounts.get(device.deviceId) || 0) + 1);
+        (room.devices || []).forEach(instance => {
+            if (!instance.isOwned) {
+                const device = allDevicesMap.get(instance.deviceId);
+                if (device) {
+                    itemsToBuy.push({
+                        name: device.name,
+                        price: device.price || 0,
+                        type: device.type as ShoppingListItem['type'],
+                        link: device.link,
+                    });
+                }
+            }
         });
     });
 
-    const itemsToBuy: ShoppingListItem[] = [];
-
-    neededCounts.forEach((neededCount, deviceId) => {
-        const device = allDevicesMap.get(deviceId);
-        if (!device) return;
-
-        const ownedCount = device.quantity || 0;
-        const toBuyCount = Math.max(0, neededCount - ownedCount);
-
-        for (let i = 0; i < toBuyCount; i++) {
-            itemsToBuy.push({
-                name: device.name,
-                price: device.price || 0,
-                type: device.type as ShoppingListItem['type'],
-                link: device.link,
-            });
-        }
+    // Check if assigned gateways are owned
+    const assignedGatewayInstancesInRooms = new Set<string>();
+     rooms.forEach(room => {
+        (room.devices || []).forEach(instance => {
+             if (instance.isOwned) {
+                const device = allDevicesMap.get(instance.deviceId);
+                if (device?.type === 'gateway' || (device?.type === 'voice-assistant' && (device as VoiceAssistant).isGateway)) {
+                    assignedGatewayInstancesInRooms.add(instance.deviceId);
+                }
+             }
+        });
     });
 
     assignedGateways.forEach(gateway => {
-        const ownedCount = gateway.quantity || 0;
-        if (ownedCount < 1) {
-             itemsToBuy.push({
-                name: gateway.name,
-                price: gateway.price || 0,
-                type: 'Gateway' as const,
-                link: gateway.link,
-             });
+        if (!assignedGatewayInstancesInRooms.has(gateway.id)) {
+            // This logic assumes 1 gateway needed if assigned, can be refined
+            if ((gateway.quantity || 0) < 1) {
+                 itemsToBuy.push({
+                    name: gateway.name,
+                    price: gateway.price || 0,
+                    type: 'Gateway' as const,
+                    link: gateway.link,
+                 });
+            }
         }
     });
 
@@ -341,6 +349,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         isSaving={isSaving}
         room={editingRoom}
         allDevicesMap={allDevicesMap}
+        allRooms={rooms || []}
       />
 
       <ShoppingListDialog

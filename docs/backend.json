@@ -667,6 +667,10 @@
               "customName": {
                 "type": "string",
                 "description": "A user-defined name for this specific instance (e.g., 'Lampka nocna')."
+              },
+              "isOwned": {
+                "type": "boolean",
+                "description": "Indicates if this specific device instance is one that the user already owns."
               }
             },
             "required": ["instanceId", "deviceId", "customName"]
