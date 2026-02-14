@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Floor, Room, Sensor, Switch, Lighting, OtherDevice, VoiceAssistant, Gateway, Connectivity } from '@/app/lib/types';
+import { Floor, Room, Sensor, Switch, Lighting, OtherDevice, VoiceAssistant, Gateway, Connectivity, GatewayConnectivity } from '@/app/lib/types';
 import { useLocale } from '../locale-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -133,21 +133,15 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
   }, [activeGateways, rooms, sensors, switches, lighting, otherDevices, t.tuyaCloud, t.localIntegration]);
 
   useLayoutEffect(() => {
-    // Wait until nodes are rendered and have positions
     if (Object.keys(nodePositions).length === 0) return;
 
     const newLines: Line[] = [];
 
-    // Part 1: Connect devices to their respective mid-level node
-    const devicesInRooms = rooms.flatMap(room => 
-        [
-            ...room.sensorIds,
-            ...room.switchIds,
-            ...room.lightingIds,
-            ...room.otherDeviceIds
-        ]
-    ).map(deviceId => allDevicesMap.get(deviceId))
-     .filter((d): d is (Sensor | Switch | Lighting | OtherDevice) & { type: string } => !!d);
+    const devicesInRooms = rooms.flatMap(room =>
+        [...room.sensorIds, ...room.switchIds, ...room.lightingIds, ...room.otherDeviceIds]
+        .map(id => allDevicesMap.get(id))
+        .filter((d): d is (Sensor | Switch | Lighting | OtherDevice) & { type: string } => !!d)
+    );
 
     devicesInRooms.forEach(device => {
         const protocol = getDeviceProtocol(device);
@@ -157,21 +151,21 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
 
         if (protocol === 'matter' || protocol === 'zigbee') {
             const suitableGateway = activeGateways.find(gw => {
-                const gwProtocols = 'connectivity' in gw ? gw.connectivity : gw.gatewayProtocols;
-                return gwProtocols?.includes(protocol);
+                if ('connectivity' in gw) { // It's a dedicated Gateway
+                    return gw.connectivity.includes(protocol as GatewayConnectivity);
+                } else { // It's a VoiceAssistant
+                    return gw.isGateway && gw.gatewayProtocols?.includes(protocol as GatewayConnectivity);
+                }
             });
-            if (suitableGateway) {
-                targetNodeId = suitableGateway.id;
-            }
-        } 
-        else if (protocol === 'tuya') {
+            targetNodeId = suitableGateway?.id;
+        } else if (protocol === 'tuya') {
             targetNodeId = 'cloud_tuya';
         } else if (protocol === 'other_app') {
             targetNodeId = 'local_other_app';
         } else if (protocol === 'bluetooth') {
             targetNodeId = 'local_bluetooth';
         }
-        
+
         if (targetNodeId) {
             newLines.push({
                 from: device.id,
@@ -181,7 +175,6 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
         }
     });
 
-    // Part 2: Connect all mid-level nodes to Home Assistant
     midLevelNodes.forEach(node => {
         newLines.push({
             from: node.id,
@@ -191,7 +184,6 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     });
 
     setLines(newLines);
-
 }, [nodePositions, rooms, allDevicesMap, activeGateways, midLevelNodes]);
 
   const renderDeviceIcon = (type: string) => {
