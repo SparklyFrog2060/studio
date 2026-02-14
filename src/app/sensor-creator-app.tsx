@@ -6,6 +6,7 @@ import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
 import { addLighting, deleteLighting, updateLighting } from "@/lib/firebase/lighting";
+import { addOtherDevice, deleteOtherDevice, updateOtherDevice } from "@/lib/firebase/other-devices";
 import { addVoiceAssistant, deleteVoiceAssistant, updateVoiceAssistant } from "@/lib/firebase/voice-assistants";
 import { addGateway, deleteGateway, updateGateway } from "@/lib/firebase/gateways";
 import { useToast } from "@/hooks/use-toast";
@@ -15,12 +16,14 @@ import AddSwitchForm from "./components/switch-creator/add-switch-form";
 import SwitchList from "./components/switch-creator/switch-list";
 import AddLightingForm from "./components/lighting-creator/add-lighting-form";
 import LightingList from "./components/lighting-creator/lighting-list";
+import AddOtherDeviceForm from "./components/other-device-creator/add-other-device-form";
+import OtherDeviceList from "./components/other-device-creator/other-device-list";
 import AddVoiceAssistantForm from "./components/voice-assistant-creator/add-voice-assistant-form";
 import VoiceAssistantList from "./components/voice-assistant-creator/voice-assistant-list";
 import AddGatewayForm from "./components/gateway-creator/add-gateway-form";
 import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
-import type { Sensor, Switch, Lighting, VoiceAssistant, Gateway } from "./lib/types";
+import type { Sensor, Switch, Lighting, VoiceAssistant, Gateway, OtherDevice } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
 import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu, Lightbulb, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -59,6 +62,10 @@ export default function SensorCreatorApp() {
   const { data: lighting, isLoading: isLoadingLighting } = useCollection<Lighting>(db ? "lighting" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingLighting, setIsSavingLighting] = useState(false);
   const [editingLighting, setEditingLighting] = useState<Lighting | null>(null);
+  
+  const { data: otherDevices, isLoading: isLoadingOtherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingOtherDevice, setIsSavingOtherDevice] = useState(false);
+  const [editingOtherDevice, setEditingOtherDevice] = useState<OtherDevice | null>(null);
 
   const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
@@ -187,6 +194,43 @@ export default function SensorCreatorApp() {
       toast({ title: "Sukces!", description: "Oświetlenie zostało usunięte." });
     } catch (error) {
       toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć oświetlenia." });
+    }
+  };
+  
+  const handleAddOtherDevice = async (data: Omit<OtherDevice, "id" | "createdAt">) => {
+    if (!db) return;
+    setIsSavingOtherDevice(true);
+    try {
+      await addOtherDevice(db, data);
+      toast({ title: "Sukces!", description: `Urządzenie "${data.name}" zostało dodane.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać urządzenia." });
+    } finally {
+      setIsSavingOtherDevice(false);
+    }
+  };
+
+  const handleUpdateOtherDevice = async (data: Omit<OtherDevice, "id" | "createdAt">) => {
+    if (!db || !editingOtherDevice) return;
+    setIsSavingOtherDevice(true);
+    try {
+      await updateOtherDevice(db, editingOtherDevice.id, data);
+      toast({ title: "Sukces!", description: `Urządzenie "${data.name}" zostało zaktualizowane.` });
+      setEditingOtherDevice(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować urządzenia." });
+    } finally {
+      setIsSavingOtherDevice(false);
+    }
+  };
+
+  const handleDeleteOtherDevice = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteOtherDevice(db, id);
+      toast({ title: "Sukces!", description: "Urządzenie zostało usunięte." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć urządzenia." });
     }
   };
 
@@ -318,7 +362,16 @@ export default function SensorCreatorApp() {
           </div>
         </div>
       );
-      case 'other-devices': return <div className="text-center text-muted-foreground mt-20">{t.wip}</div>;
+      case 'other-devices': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddOtherDeviceForm onSubmit={handleAddOtherDevice} isSaving={isSavingOtherDevice} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingOtherDevices ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <OtherDeviceList devices={otherDevices || []} onDeleteDevice={handleDeleteOtherDevice} onEditDevice={setEditingOtherDevice} />
+            )}
+          </div>
+        </div>
+      );
       case 'voice-assistants': return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} /></div>
@@ -465,6 +518,12 @@ export default function SensorCreatorApp() {
         </DialogContent>
       </Dialog>
       
+      <Dialog open={!!editingOtherDevice} onOpenChange={(isOpen) => !isOpen && setEditingOtherDevice(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingOtherDevice && <AddOtherDeviceForm initialData={editingOtherDevice} onSubmit={handleUpdateOtherDevice} isSaving={isSavingOtherDevice}/>}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editingVoiceAssistant} onOpenChange={(isOpen) => !isOpen && setEditingVoiceAssistant(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {editingVoiceAssistant && <AddVoiceAssistantForm initialData={editingVoiceAssistant} onSubmit={handleUpdateVoiceAssistant} isSaving={isSavingVoiceAssistant}/>}
@@ -479,3 +538,5 @@ export default function SensorCreatorApp() {
     </div>
   );
 }
+
+    

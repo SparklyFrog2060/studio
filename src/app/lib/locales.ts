@@ -90,6 +90,20 @@ export const locales = {
     lamp: "Lamp",
     ledStrip: "LED Strip",
     other: "Other",
+    // Other Device specific
+    addOtherDevice: "Add Device",
+    editOtherDevice: "Edit Device",
+    saveOtherDevice: "Save Device",
+    otherDeviceName: "Device Name",
+    otherDeviceNamePlaceholder: "e.g., Smart TV",
+    noOtherDevices: "No other devices created yet.",
+    clickToAddOtherDevice: "Fill out the form to add a new device.",
+    washingMachine: "Washing Machine",
+    dishwasher: "Dishwasher",
+    tv: "TV",
+    speaker: "Speaker",
+    robotVacuum: "Robot Vacuum",
+    airPurifier: "Air Purifier",
     // House Planner specific
     housePlanner: "House Planner",
     addFloor: "Add Floor",
@@ -208,6 +222,20 @@ export const locales = {
     lamp: "Lampka",
     ledStrip: "Pasek LED",
     other: "Inne",
+    // Other Device specific
+    addOtherDevice: "Dodaj Urządzenie",
+    editOtherDevice: "Edytuj Urządzenie",
+    saveOtherDevice: "Zapisz Urządzenie",
+    otherDeviceName: "Nazwa urządzenia",
+    otherDeviceNamePlaceholder: "np. Smart TV",
+    noOtherDevices: "Nie utworzono jeszcze żadnych innych urządzeń.",
+    clickToAddOtherDevice: "Wypełnij formularz, aby dodać nowe urządzenie.",
+    washingMachine: "Pralka",
+    dishwasher: "Zmywarka",
+    tv: "Telewizor",
+    speaker: "Głośnik",
+    robotVacuum: "Odkurzacz automatyczny",
+    airPurifier: "Oczyszczacz powietrza",
     // House Planner specific
     housePlanner: "Planer Domu",
     addFloor: "Dodaj Piętro",
@@ -237,3 +265,5 @@ export const locales = {
 };
 
 export type Locale = keyof typeof locales;
+
+    

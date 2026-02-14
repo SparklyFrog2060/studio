@@ -16,6 +16,9 @@ service cloud.firestore {
     match /lighting/{lightingId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /other_devices/{deviceId} {
+      allow read, write: if true; // Allow all reads and writes for now
+    }
     match /floors/{floorId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
@@ -24,3 +27,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

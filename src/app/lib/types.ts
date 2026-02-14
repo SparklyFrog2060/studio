@@ -57,6 +57,22 @@ export interface Lighting {
   createdAt?: Timestamp;
 }
 
+export interface OtherDevice {
+  id: string; // Document ID from firestore
+  name: string;
+  type: 'washing_machine' | 'dishwasher' | 'tv' | 'speaker' | 'robot_vacuum' | 'air_purifier' | 'other';
+  brand: string;
+  link?: string;
+  price: number;
+  priceEvaluation: 'good' | 'medium' | 'bad';
+  connectivity: Connectivity;
+  homeAssistantCompatibility: number;
+  score: number;
+  tags: string[];
+  specs: Specification[];
+  createdAt?: Timestamp;
+}
+
 export interface VoiceAssistant {
   id: string; // Document ID from firestore
   name: string;
@@ -101,5 +117,9 @@ export interface Room {
   sensorIds: string[];
   switchIds: string[];
   voiceAssistantIds: string[];
+  lightingIds: string[];
+  otherDeviceIds: string[];
   createdAt?: Timestamp;
 }
+
+    

@@ -17,7 +17,7 @@ import { Link as LinkIcon } from "lucide-react";
 interface ShoppingListItem {
   name: string;
   price: number;
-  type: 'Sensor' | 'Switch' | 'VoiceAssistant';
+  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice';
   link?: string;
 }
 
@@ -42,6 +42,8 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
   const sensors = items.filter(item => item.type === 'Sensor');
   const switches = items.filter(item => item.type === 'Switch');
   const assistants = items.filter(item => item.type === 'VoiceAssistant');
+  const lighting = items.filter(item => item.type === 'Lighting');
+  const otherDevices = items.filter(item => item.type === 'OtherDevice');
 
   const renderSection = (title: string, sectionItems: ShoppingListItem[]) => {
     if (sectionItems.length === 0) return null;
@@ -82,6 +84,8 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
                   {renderSection(t.sensors, sensors)}
                   {renderSection(t.switches, switches)}
                   {renderSection(t.voiceAssistants, assistants)}
+                  {renderSection(t.lighting, lighting)}
+                  {renderSection(t.otherDevices, otherDevices)}
                 </>
               ) : (
                 <p className="text-center text-muted-foreground">Brak produktów na liście.</p>
@@ -98,3 +102,5 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
     </Dialog>
   );
 }
+
+    

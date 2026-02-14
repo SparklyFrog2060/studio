@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
@@ -19,7 +19,7 @@ import ShoppingListDialog from "./shopping-list-dialog";
 interface ShoppingListItem {
   name: string;
   price: number;
-  type: 'Sensor' | 'Switch' | 'VoiceAssistant';
+  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice';
   link?: string;
 }
 
@@ -33,6 +33,9 @@ export default function HousePlanner() {
   const { data: sensors } = useCollection<Sensor>(db ? "sensors" : null);
   const { data: switches } = useCollection<Switch>(db ? "switches" : null);
   const { data: voiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null);
+  const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
+  const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
+
 
   const [isAddFloorDialogOpen, setIsAddFloorDialogOpen] = useState(false);
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
@@ -41,11 +44,13 @@ export default function HousePlanner() {
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
-    if (!rooms || !sensors || !switches || !voiceAssistants) return [];
+    if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices) return [];
 
     const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
     const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
     const allAssignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds || []));
+    const allAssignedLightingIds = new Set(rooms.flatMap(r => r.lightingIds || []));
+    const allAssignedOtherDeviceIds = new Set(rooms.flatMap(r => r.otherDeviceIds || []));
 
     const assignedSensors = sensors
         .filter(s => allAssignedSensorIds.has(s.id))
@@ -58,9 +63,17 @@ export default function HousePlanner() {
     const assignedAssistants = voiceAssistants
         .filter(v => allAssignedAssistantIds.has(v.id))
         .map(v => ({ name: v.name, price: v.price || 0, type: 'VoiceAssistant' as const, link: v.link }));
+    
+    const assignedLighting = lighting
+        .filter(l => allAssignedLightingIds.has(l.id))
+        .map(l => ({ name: l.name, price: l.price || 0, type: 'Lighting' as const, link: l.link }));
+    
+    const assignedOtherDevices = otherDevices
+        .filter(d => allAssignedOtherDeviceIds.has(d.id))
+        .map(d => ({ name: d.name, price: d.price || 0, type: 'OtherDevice' as const, link: d.link }));
 
-    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants];
-  }, [rooms, sensors, switches, voiceAssistants]);
+    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices];
+  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
@@ -104,10 +117,10 @@ export default function HousePlanner() {
       }
   };
 
-  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "sensorIds" | "switchIds" | "voiceAssistantIds">) => {
+  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "sensorIds" | "switchIds" | "voiceAssistantIds" | "lightingIds" | "otherDeviceIds">) => {
     if (!db) return;
     setIsSaving(true);
-    const newRoomData = { ...data, sensorIds: [], switchIds: [], voiceAssistantIds: [] };
+    const newRoomData = { ...data, sensorIds: [], switchIds: [], voiceAssistantIds: [], lightingIds: [], otherDeviceIds: [] };
     try {
       await addRoom(db, newRoomData);
       toast({ title: "Sukces!", description: `Pomieszczenie "${data.name}" zostało dodane.` });
@@ -175,6 +188,8 @@ export default function HousePlanner() {
               sensors={sensors || []}
               switches={switches || []}
               voiceAssistants={voiceAssistants || []}
+              lighting={lighting || []}
+              otherDevices={otherDevices || []}
               onEditRoom={setEditingRoom}
               onDeleteFloor={handleDeleteFloor}
               onDeleteRoom={handleDeleteRoom}
@@ -217,6 +232,8 @@ export default function HousePlanner() {
         sensors={sensors || []}
         switches={switches || []}
         voiceAssistants={voiceAssistants || []}
+        lighting={lighting || []}
+        otherDevices={otherDevices || []}
       />
 
       <ShoppingListDialog
@@ -228,3 +245,5 @@ export default function HousePlanner() {
     </div>
   );
 }
+
+    

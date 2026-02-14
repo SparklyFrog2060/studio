@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useLocale } from "@/app/components/locale-provider";
-import type { Room, Sensor, Switch, VoiceAssistant } from "@/app/lib/types";
+import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
 
 interface EditRoomDialogProps {
   isOpen: boolean;
@@ -24,6 +24,8 @@ interface EditRoomDialogProps {
   sensors: Sensor[];
   switches: Switch[];
   voiceAssistants: VoiceAssistant[];
+  lighting: Lighting[];
+  otherDevices: OtherDevice[];
 }
 
 const formSchema = z.object({
@@ -31,11 +33,13 @@ const formSchema = z.object({
   sensorIds: z.array(z.string()),
   switchIds: z.array(z.string()),
   voiceAssistantIds: z.array(z.string()),
+  lightingIds: z.array(z.string()),
+  otherDeviceIds: z.array(z.string()),
 });
 
 type RoomFormData = z.infer<typeof formSchema>;
 
-export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, room, sensors, switches, voiceAssistants }: EditRoomDialogProps) {
+export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, room, sensors, switches, voiceAssistants, lighting, otherDevices }: EditRoomDialogProps) {
   const { t } = useLocale();
 
   const form = useForm<RoomFormData>({
@@ -45,6 +49,8 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
       sensorIds: [],
       switchIds: [],
       voiceAssistantIds: [],
+      lightingIds: [],
+      otherDeviceIds: [],
     },
   });
 
@@ -55,6 +61,8 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
         sensorIds: room.sensorIds || [],
         switchIds: room.switchIds || [],
         voiceAssistantIds: room.voiceAssistantIds || [],
+        lightingIds: room.lightingIds || [],
+        otherDeviceIds: room.otherDeviceIds || [],
       });
     }
   }, [room, form]);
@@ -63,7 +71,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t.editRoom}: {room.name}</DialogTitle>
           <DialogDescription>{t.assignDevices}</DialogDescription>
@@ -84,7 +92,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               {/* SENSORS */}
               <div className="space-y-2">
                 <h3 className="font-semibold">{t.sensors}</h3>
@@ -103,7 +111,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                                 checked={field.value?.includes(sensor.id)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, sensor.id])
+                                    ? field.onChange([...(field.value || []), sensor.id])
                                     : field.onChange(field.value?.filter(id => id !== sensor.id))
                                 }}
                               />
@@ -135,7 +143,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                                 checked={field.value?.includes(switchItem.id)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, switchItem.id])
+                                    ? field.onChange([...(field.value || []), switchItem.id])
                                     : field.onChange(field.value?.filter(id => id !== switchItem.id))
                                 }}
                               />
@@ -167,12 +175,76 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                                 checked={field.value?.includes(assistant.id)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, assistant.id])
+                                    ? field.onChange([...(field.value || []), assistant.id])
                                     : field.onChange(field.value?.filter(id => id !== assistant.id))
                                 }}
                               />
                             </FormControl>
                             <FormLabel className="font-normal text-sm">{assistant.name}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+              
+               {/* LIGHTING */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">{t.lighting}</h3>
+                <Separator />
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 p-1">
+                    {lighting.map(item => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name="lightingIds"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), item.id])
+                                    : field.onChange(field.value?.filter(id => id !== item.id))
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+
+               {/* OTHER DEVICES */}
+               <div className="space-y-2">
+                <h3 className="font-semibold">{t.otherDevices}</h3>
+                <Separator />
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 p-1">
+                    {otherDevices.map(item => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name="otherDeviceIds"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), item.id])
+                                    : field.onChange(field.value?.filter(id => id !== item.id))
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
                           </FormItem>
                         )}
                       />
@@ -193,3 +265,5 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
     </Dialog>
   );
 }
+
+    

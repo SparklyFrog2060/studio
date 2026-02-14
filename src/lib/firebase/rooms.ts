@@ -18,3 +18,5 @@ export const updateRoom = (db: Firestore, id: string, room: Partial<Omit<Room, "
 export const deleteRoom = (db: Firestore, id: string) => {
     return deleteDoc(doc(db, "rooms", id));
 };
+
+    

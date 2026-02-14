@@ -520,6 +520,80 @@
         "name", "type", "brand", "price", "priceEvaluation", "connectivity", "homeAssistantCompatibility", "score", "tags", "specs", "createdAt"
       ]
     },
+    "OtherDevice": {
+      "title": "OtherDevice",
+      "type": "object",
+      "description": "Represents a user-created other device.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the device."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["washing_machine", "dishwasher", "tv", "speaker", "robot_vacuum", "air_purifier", "other"],
+          "description": "The type of the device."
+        },
+        "brand": {
+          "type": "string",
+          "description": "The brand of the device."
+        },
+        "link": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL link to the product page."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the device."
+        },
+        "priceEvaluation": {
+          "type": "string",
+          "enum": ["good", "medium", "bad"],
+          "description": "The evaluation of the price."
+        },
+        "connectivity": {
+          "type": "string",
+          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth"],
+          "description": "The connectivity protocol."
+        },
+        "homeAssistantCompatibility": {
+          "type": "number",
+          "description": "Compatibility score with Home Assistant from 1 to 5."
+        },
+        "score": {
+          "type": "number",
+          "description": "The calculated score from 1 to 10."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of tags."
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "value": { "type": "string" },
+              "evaluation": { "type": "string", "enum": ["good", "medium", "bad"] }
+            },
+            "required": ["id", "name", "value", "evaluation"]
+          },
+          "description": "A list of technical specifications for the device."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the device was created."
+        }
+      },
+      "required": [
+        "name", "type", "brand", "price", "priceEvaluation", "connectivity", "homeAssistantCompatibility", "score", "tags", "specs", "createdAt"
+      ]
+    },
     "Floor": {
       "title": "Floor",
       "type": "object",
@@ -565,13 +639,23 @@
           "items": { "type": "string" },
           "description": "A list of voice assistant IDs assigned to this room."
         },
+        "lightingIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of lighting device IDs assigned to this room."
+        },
+        "otherDeviceIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of other device IDs assigned to this room."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the room was created."
         }
       },
-      "required": ["name", "floorId", "sensorIds", "switchIds", "voiceAssistantIds", "createdAt"]
+      "required": ["name", "floorId", "sensorIds", "switchIds", "voiceAssistantIds", "lightingIds", "otherDeviceIds", "createdAt"]
     }
   },
   "auth": {
@@ -610,6 +694,12 @@
       },
       "description": "Collection to store all user-created lighting devices."
     },
+    "other_devices": {
+      "schema": {
+        "$ref": "#/entities/OtherDevice"
+      },
+      "description": "Collection to store all user-created other devices."
+    },
     "floors": {
       "schema": {
         "$ref": "#/entities/Floor"
@@ -624,3 +714,5 @@
     }
   }
 }
+
+    

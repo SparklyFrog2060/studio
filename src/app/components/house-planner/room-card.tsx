@@ -4,8 +4,8 @@
 import { useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins } from "lucide-react";
-import type { Room, Sensor, Switch, VoiceAssistant } from "@/app/lib/types";
+import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins, Lightbulb, Box } from "lucide-react";
+import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
 import { useLocale } from "../locale-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -14,31 +14,43 @@ interface RoomCardProps {
   sensors: Sensor[];
   switches: Switch[];
   voiceAssistants: VoiceAssistant[];
+  lighting: Lighting[];
+  otherDevices: OtherDevice[];
   onEditRoom: (room: Room) => void;
   onDeleteRoom: (roomId: string) => void;
 }
 
-export default function RoomCard({ room, sensors, switches, voiceAssistants, onEditRoom, onDeleteRoom }: RoomCardProps) {
+export default function RoomCard({ room, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteRoom }: RoomCardProps) {
   const { t } = useLocale();
   const hasSensors = room.sensorIds && room.sensorIds.length > 0;
   const hasSwitches = room.switchIds && room.switchIds.length > 0;
   const hasAssistants = room.voiceAssistantIds && room.voiceAssistantIds.length > 0;
+  const hasLighting = room.lightingIds && room.lightingIds.length > 0;
+  const hasOtherDevices = room.otherDeviceIds && room.otherDeviceIds.length > 0;
 
   const roomPrice = useMemo(() => {
-    const sensorPrice = room.sensorIds.reduce((sum, id) => {
+    const sensorPrice = (room.sensorIds || []).reduce((sum, id) => {
         const device = sensors.find(s => s.id === id);
         return sum + (device?.price || 0);
     }, 0);
-    const switchPrice = room.switchIds.reduce((sum, id) => {
+    const switchPrice = (room.switchIds || []).reduce((sum, id) => {
         const device = switches.find(s => s.id === id);
         return sum + (device?.price || 0);
     }, 0);
-    const assistantPrice = room.voiceAssistantIds.reduce((sum, id) => {
+    const assistantPrice = (room.voiceAssistantIds || []).reduce((sum, id) => {
         const device = voiceAssistants.find(v => v.id === id);
         return sum + (device?.price || 0);
     }, 0);
-    return sensorPrice + switchPrice + assistantPrice;
-  }, [room, sensors, switches, voiceAssistants]);
+    const lightingPrice = (room.lightingIds || []).reduce((sum, id) => {
+        const device = lighting.find(l => l.id === id);
+        return sum + (device?.price || 0);
+    }, 0);
+    const otherDevicePrice = (room.otherDeviceIds || []).reduce((sum, id) => {
+        const device = otherDevices.find(d => d.id === id);
+        return sum + (device?.price || 0);
+    }, 0);
+    return sensorPrice + switchPrice + assistantPrice + lightingPrice + otherDevicePrice;
+  }, [room, sensors, switches, voiceAssistants, lighting, otherDevices]);
 
   return (
     <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => onEditRoom(room)}>
@@ -58,6 +70,8 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, onE
           <Thermometer className={hasSensors ? "text-yellow-400" : "text-gray-300"} />
           <ToggleRight className={hasSwitches ? "text-green-500" : "text-gray-300"} />
           <Mic className={hasAssistants ? "text-blue-500" : "text-gray-300"} />
+          <Lightbulb className={hasLighting ? "text-orange-400" : "text-gray-300"} />
+          <Box className={hasOtherDevices ? "text-purple-400" : "text-gray-300"} />
         </div>
         <div>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onEditRoom(room); }}>
@@ -87,3 +101,5 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, onE
     </Card>
   );
 }
+
+    
