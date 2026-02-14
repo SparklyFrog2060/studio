@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
@@ -51,6 +51,11 @@ export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
 
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const { data: sensors, isLoading: isLoadingSensors } = useCollection<Sensor>(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSensor, setIsSavingSensor] = useState(false);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
@@ -85,6 +90,9 @@ export default function SensorCreatorApp() {
     return [...regularGateways, ...assistantGateways];
   }, [gateways, voiceAssistants]);
 
+  if (!hasMounted) {
+    return null;
+  }
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
     if (!db) return;
@@ -178,7 +186,7 @@ export default function SensorCreatorApp() {
     setIsSavingLighting(true);
     try {
       await updateLighting(db, editingLighting.id, data);
-      toast({ title: "Sukces!", description: `Oświetlenie "${data.name}" zostało zaktualizowane.` });
+      toast({ title: "Sukces!", description: `Oświetlenie "${data.name}" został zaktualizowane.` });
       setEditingLighting(null);
     } catch (error) {
       toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować oświetlenia." });
@@ -538,5 +546,3 @@ export default function SensorCreatorApp() {
     </div>
   );
 }
-
-    
