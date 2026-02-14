@@ -46,7 +46,7 @@ interface AddGatewayFormProps {
 }
 
 const PREDEFINED_TAGS = ["Centrala", "Mostek"];
-const CONNECTIVITY_OPTIONS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth"];
+const CONNECTIVITY_OPTIONS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth", "tuya"];
 
 export default function AddGatewayForm({ onSubmit, isSaving, initialData }: AddGatewayFormProps) {
   const { t } = useLocale();

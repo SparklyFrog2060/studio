@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
@@ -19,7 +19,7 @@ import ShoppingListDialog from "./shopping-list-dialog";
 interface ShoppingListItem {
   name: string;
   price: number;
-  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice';
+  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice' | 'Gateway';
   link?: string;
 }
 
@@ -35,6 +35,7 @@ export default function HousePlanner() {
   const { data: voiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null);
   const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
   const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
+  const { data: gateways } = useCollection<Gateway>(db ? "gateways" : null);
 
 
   const [isAddFloorDialogOpen, setIsAddFloorDialogOpen] = useState(false);
@@ -42,6 +43,24 @@ export default function HousePlanner() {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+  
+  const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
+    if (!gateways && !voiceAssistants) return new Set();
+
+    const protocols = new Set<GatewayConnectivity>();
+
+    (gateways || []).forEach(g => {
+      (g.connectivity || []).forEach(p => protocols.add(p));
+    });
+
+    (voiceAssistants || []).forEach(va => {
+      if (va.isGateway) {
+        (va.gatewayProtocols || []).forEach(p => protocols.add(p));
+      }
+    });
+
+    return protocols;
+  }, [gateways, voiceAssistants]);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
     if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices) return [];
@@ -71,9 +90,11 @@ export default function HousePlanner() {
     const assignedOtherDevices = otherDevices
         .filter(d => allAssignedOtherDeviceIds.has(d.id))
         .map(d => ({ name: d.name, price: d.price || 0, type: 'OtherDevice' as const, link: d.link }));
+        
+    const gatewayItems = (gateways || []).map(g => ({ name: g.name, price: g.price || 0, type: 'Gateway' as const, link: g.link }));
 
-    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices];
-  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices]);
+    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices, ...gatewayItems];
+  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, gateways]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
@@ -193,6 +214,7 @@ export default function HousePlanner() {
               onEditRoom={setEditingRoom}
               onDeleteFloor={handleDeleteFloor}
               onDeleteRoom={handleDeleteRoom}
+              houseGatewayProtocols={houseGatewayProtocols}
             />
           ))}
         </div>

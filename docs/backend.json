@@ -314,7 +314,8 @@
             "enum": [
               "matter",
               "zigbee",
-              "bluetooth"
+              "bluetooth",
+              "tuya"
             ]
           },
           "description": "The connectivity protocols supported by the gateway functionality."
@@ -375,7 +376,8 @@
             "enum": [
               "matter",
               "zigbee",
-              "bluetooth"
+              "bluetooth",
+              "tuya"
             ]
           },
           "description": "The connectivity protocols of the gateway."

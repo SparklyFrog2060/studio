@@ -8,7 +8,7 @@ export interface Specification {
 }
 
 export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth';
-export type GatewayConnectivity = 'matter' | 'zigbee' | 'bluetooth';
+export type GatewayConnectivity = 'matter' | 'zigbee' | 'bluetooth' | 'tuya';
 
 export interface Sensor {
   id: string; // Document ID from firestore

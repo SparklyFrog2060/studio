@@ -2,7 +2,7 @@
 "use client";
 
 import { useLocale } from "@/app/components/locale-provider";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, GatewayConnectivity } from "@/app/lib/types";
 import RoomCard from "./room-card";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
@@ -19,9 +19,10 @@ interface FloorSectionProps {
   onEditRoom: (room: Room) => void;
   onDeleteFloor: (floorId: string) => void;
   onDeleteRoom: (roomId: string) => void;
+  houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
-export default function FloorSection({ floor, rooms, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteFloor, onDeleteRoom }: FloorSectionProps) {
+export default function FloorSection({ floor, rooms, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteFloor, onDeleteRoom, houseGatewayProtocols }: FloorSectionProps) {
   const { t } = useLocale();
 
   return (
@@ -58,7 +59,8 @@ export default function FloorSection({ floor, rooms, sensors, switches, voiceAss
               lighting={lighting}
               otherDevices={otherDevices}
               onEditRoom={onEditRoom} 
-              onDeleteRoom={onDeleteRoom} 
+              onDeleteRoom={onDeleteRoom}
+              houseGatewayProtocols={houseGatewayProtocols}
             />
           ))}
         </div>

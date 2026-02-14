@@ -48,7 +48,7 @@ interface AddVoiceAssistantFormProps {
 }
 
 const PREDEFINED_TAGS = ["Muzyka", "Pogoda", "Wiadomości", "Sterowanie domem"];
-const GATEWAY_PROTOCOLS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth"];
+const GATEWAY_PROTOCOLS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth", "tuya"];
 
 export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData }: AddVoiceAssistantFormProps) {
   const { t } = useLocale();
@@ -449,8 +449,5 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
     </Card>
   );
 }
-
-    
-
 
     
