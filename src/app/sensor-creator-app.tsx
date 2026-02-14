@@ -19,7 +19,7 @@ import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
 import type { Sensor, Switch, VoiceAssistant, Gateway } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router } from 'lucide-react';
+import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +31,11 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { ThemeSwitcher } from "./components/theme-switcher";
 
 type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants' | 'gateways';
@@ -58,6 +63,7 @@ export default function SensorCreatorApp() {
 
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<View>('planner');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const gatewayDevices = useMemo((): GatewayDevice[] => {
     const regularGateways = (gateways || []).map(g => ({ ...g, deviceType: 'gateway' as const }));
@@ -229,7 +235,11 @@ export default function SensorCreatorApp() {
       handleDeleteVoiceAssistant(id);
     }
   };
-
+  
+  const handleMobileLinkClick = (view: View) => {
+    setActiveView(view);
+    setIsMobileMenuOpen(false);
+  }
 
   const renderContent = () => {
     switch (activeView) {
@@ -283,6 +293,38 @@ export default function SensorCreatorApp() {
        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
             <div className="mr-auto flex items-center">
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="md:hidden mr-2">
+                      <Menu className="h-6 w-6" />
+                      <span className="sr-only">Otwórz menu</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px]">
+                    <div className="mt-6 flex flex-col gap-2">
+                      <Button variant={activeView === 'planner' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('planner')}>
+                          <LayoutGrid className="mr-2 h-5 w-5" />
+                          {t.housePlanner}
+                      </Button>
+                      <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('sensors')}>
+                          <Thermometer className="mr-2 h-5 w-5" />
+                          {t.sensors}
+                      </Button>
+                      <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('switches')}>
+                          <ToggleRight className="mr-2 h-5 w-5" />
+                          {t.switches}
+                      </Button>
+                      <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('voice-assistants')}>
+                          <Mic className="mr-2 h-5 w-5" />
+                          {t.voiceAssistants}
+                      </Button>
+                      <Button variant={activeView === 'gateways' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('gateways')}>
+                          <Router className="mr-2 h-5 w-5" />
+                          {t.gateways}
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
                 <Building className="h-6 w-6 mr-2 text-primary" />
                 <h1 className="text-xl font-bold">{t.appName}</h1>
             </div>
