@@ -67,7 +67,7 @@ const formSchema = z.object({
     instanceId: z.string(),
     deviceId: z.string(),
     customName: z.string(),
-    isOwned: z.boolean().optional(),
+    isOwned: z.boolean().default(false),
   })),
 });
 
