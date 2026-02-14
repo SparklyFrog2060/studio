@@ -9,11 +9,18 @@ import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Wallet } from "lucide-react";
+import { PlusCircle, Wallet, Receipt } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
 import FloorSection from "./floor-section";
+import ShoppingListDialog from "./shopping-list-dialog";
+
+interface ShoppingListItem {
+  name: string;
+  price: number;
+  type: 'Sensor' | 'Switch' | 'VoiceAssistant';
+}
 
 export default function HousePlanner() {
   const { t } = useLocale();
@@ -30,28 +37,33 @@ export default function HousePlanner() {
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+  
+  const shoppingListItems = useMemo((): ShoppingListItem[] => {
+    if (!rooms || !sensors || !switches || !voiceAssistants) return [];
+
+    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
+    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
+    const allAssignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds || []));
+
+    const assignedSensors = sensors
+        .filter(s => allAssignedSensorIds.has(s.id))
+        .map(s => ({ name: s.name, price: s.price || 0, type: 'Sensor' as const }));
+
+    const assignedSwitches = switches
+        .filter(s => allAssignedSwitchIds.has(s.id))
+        .map(s => ({ name: s.name, price: s.price || 0, type: 'Switch' as const }));
+    
+    const assignedAssistants = voiceAssistants
+        .filter(v => allAssignedAssistantIds.has(v.id))
+        .map(v => ({ name: v.name, price: v.price || 0, type: 'VoiceAssistant' as const }));
+
+    return [...assignedSensors, ...assignedSwitches, ...assignedAssistants];
+  }, [rooms, sensors, switches, voiceAssistants]);
   
   const totalHousePrice = useMemo(() => {
-    if (!rooms || !sensors || !switches || !voiceAssistants) return 0;
-
-    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds));
-    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds));
-    const allAssignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds));
-
-    const sensorTotal = sensors
-        .filter(s => allAssignedSensorIds.has(s.id))
-        .reduce((sum, s) => sum + (s.price || 0), 0);
-
-    const switchTotal = switches
-        .filter(s => allAssignedSwitchIds.has(s.id))
-        .reduce((sum, s) => sum + (s.price || 0), 0);
-    
-    const assistantTotal = voiceAssistants
-        .filter(v => allAssignedAssistantIds.has(v.id))
-        .reduce((sum, v) => sum + (v.price || 0), 0);
-
-    return sensorTotal + switchTotal + assistantTotal;
-  }, [rooms, sensors, switches, voiceAssistants]);
+    return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
+  }, [shoppingListItems]);
 
 
   const handleAddFloor = async (data: Omit<Floor, "id" | "createdAt">) => {
@@ -125,12 +137,18 @@ export default function HousePlanner() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3 text-xl font-bold">
-            <Wallet className="h-8 w-8 text-primary" />
-            <div>
-                <span className="text-muted-foreground text-sm font-medium">Suma:</span>
-                <div className="text-2xl text-primary">{totalHousePrice.toFixed(2)} zł</div>
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+                <Wallet className="h-8 w-8 text-primary" />
+                <div>
+                    <span className="text-muted-foreground text-sm font-medium">{t.total}:</span>
+                    <div className="text-2xl font-bold text-primary">{totalHousePrice.toFixed(2)} zł</div>
+                </div>
             </div>
+             <Button variant="outline" onClick={() => setIsShoppingListOpen(true)} disabled={totalHousePrice <= 0}>
+              <Receipt className="mr-2 h-4 w-4" />
+              {t.shoppingList}
+            </Button>
         </div>
         <div className="flex justify-end gap-2">
             <Button onClick={() => setIsAddFloorDialogOpen(true)}>
@@ -198,6 +216,13 @@ export default function HousePlanner() {
         sensors={sensors || []}
         switches={switches || []}
         voiceAssistants={voiceAssistants || []}
+      />
+
+      <ShoppingListDialog
+        isOpen={isShoppingListOpen}
+        onOpenChange={setIsShoppingListOpen}
+        items={shoppingListItems}
+        totalPrice={totalHousePrice}
       />
     </div>
   );

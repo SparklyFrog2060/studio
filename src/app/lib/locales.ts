@@ -82,6 +82,8 @@ export const locales = {
     availableSensors: "Available Sensors",
     availableSwitches: "Available Switches",
     availableVoiceAssistants: "Available Voice Assistants",
+    shoppingList: "Shopping List",
+    total: "Total",
   },
   pl: {
     appName: "Kreator Urządzeń",
@@ -166,6 +168,8 @@ export const locales = {
     availableSensors: "Dostępne Czujniki",
     availableSwitches: "Dostępne Włączniki",
     availableVoiceAssistants: "Dostępni Asystenci Głosowi",
+    shoppingList: "Lista Zakupów",
+    total: "Suma",
   },
 };
 
