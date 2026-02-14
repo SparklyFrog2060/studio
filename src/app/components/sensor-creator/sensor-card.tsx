@@ -9,7 +9,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon } from "lucide-react";
+import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocale } from "@/app/components/locale-provider";
@@ -18,9 +18,10 @@ import type { Sensor, Connectivity } from "@/app/lib/types";
 interface SensorCardProps {
   sensor: Sensor;
   onDelete: (id: string) => void;
+  onEdit: (sensor: Sensor) => void;
 }
 
-export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
+export default function SensorCard({ sensor, onDelete, onEdit }: SensorCardProps) {
   const { t } = useLocale();
 
   const getEvaluationIcon = (evaluation: 'good' | 'medium' | 'bad') => {
@@ -66,24 +67,30 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
             ))}
           </div>
         </div>
-         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0">
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">{t.delete}</span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t.deleteConfirmation}</AlertDialogTitle>
-              <AlertDialogDescription>{t.deleteDescription}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(sensor.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.confirm}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onEdit(sensor)}>
+              <Pencil className="h-4 w-4" />
+              <span className="sr-only">{t.edit}</span>
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">{t.delete}</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t.deleteConfirmation}</AlertDialogTitle>
+                <AlertDialogDescription>{t.deleteDescription}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(sensor.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.confirm}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <h4 className="font-semibold">{t.technicalSpecs}</h4>

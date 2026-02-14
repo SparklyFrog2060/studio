@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,20 +37,22 @@ const formSchema = z.object({
 type SensorFormData = z.infer<typeof formSchema>;
 
 interface AddSensorFormProps {
-  onAddSensor: (data: Omit<Sensor, "id" | "createdAt">) => void;
+  onSubmit: (data: Omit<Sensor, "id" | "createdAt">) => void;
   isSaving: boolean;
+  initialData?: Sensor;
 }
 
 const PREDEFINED_TAGS = ["Temperatura", "Wilgotność", "Ruch", "Jakość powietrza", "Wyciek wody"];
 
-export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormProps) {
+export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSensorFormProps) {
   const { t } = useLocale();
   const [tagInput, setTagInput] = useState("");
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(initialData?.score || 0);
+  const isEditMode = !!initialData;
 
   const form = useForm<SensorFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       name: "",
       brand: "",
       link: "",
@@ -61,6 +63,13 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
       specs: [],
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+      setScore(initialData.score);
+    }
+  }, [initialData, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -111,18 +120,20 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
     );
   };
   
-  const onSubmit = (data: SensorFormData) => {
-    onAddSensor({ ...data, score });
-    form.reset();
+  const handleFormSubmit = (data: SensorFormData) => {
+    onSubmit({ ...data, score });
+    if (!isEditMode) {
+        form.reset();
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t.addSensor}</CardTitle>
+        <CardTitle>{isEditMode ? t.editSensor : t.addSensor}</CardTitle>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -188,7 +199,7 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex space-x-4 items-center h-full"
                         >
                           <FormItem className="flex items-center space-x-2 space-y-0">
@@ -226,7 +237,7 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex flex-wrap gap-x-4 gap-y-2"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -331,7 +342,7 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
                           <FormControl>
                             <RadioGroup
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              value={field.value}
                               className="flex space-x-4"
                             >
                               <FormItem className="flex items-center space-x-2 space-y-0">
@@ -382,7 +393,9 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
                 <span className="text-lg font-bold">{t.score}:</span>
                 <span className="text-2xl font-bold text-primary">{score.toFixed(1)}/10</span>
             </div>
-            <Button type="submit" disabled={isSaving}>{t.saveSensor}</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isEditMode ? t.saveChanges : t.saveSensor}
+            </Button>
           </CardFooter>
         </form>
       </Form>

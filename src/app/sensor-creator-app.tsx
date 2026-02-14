@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useCollection, useFirestore } from "@/firebase";
-import { addSensor, deleteSensor } from "@/lib/firebase/sensors";
+import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { useToast } from "@/hooks/use-toast";
 import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
@@ -16,13 +16,18 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog"
 
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
   const { data: sensors, isLoading } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSaving, setIsSaving] = useState(false);
+  const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<'sensors' | 'switches'>('sensors');
 
@@ -42,6 +47,28 @@ export default function SensorCreatorApp() {
         variant: "destructive",
         title: "Błąd",
         description: "Nie udało się dodać czujnika.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
+    if (!db || !editingSensor) return;
+    setIsSaving(true);
+    try {
+      await updateSensor(db, editingSensor.id, data);
+      toast({
+        title: "Sukces!",
+        description: `Czujnik "${data.name}" został zaktualizowany.`,
+      });
+      setEditingSensor(null);
+    } catch (error) {
+      console.error("Error updating sensor: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się zaktualizować czujnika.",
       });
     } finally {
       setIsSaving(false);
@@ -111,13 +138,17 @@ export default function SensorCreatorApp() {
         {activeView === 'sensors' ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-1">
-                    <AddSensorForm onAddSensor={handleAddSensor} isSaving={isSaving} />
+                    <AddSensorForm onSubmit={handleAddSensor} isSaving={isSaving} />
                 </div>
                 <div className="lg:col-span-2">
                     {isLoading ? (
                         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
                     ) : (
-                        <SensorList sensors={sensors as Sensor[]} onDeleteSensor={handleDeleteSensor} />
+                        <SensorList 
+                          sensors={sensors as Sensor[]} 
+                          onDeleteSensor={handleDeleteSensor}
+                          onEditSensor={(sensor) => setEditingSensor(sensor)}
+                        />
                     )}
                 </div>
             </div>
@@ -129,6 +160,18 @@ export default function SensorCreatorApp() {
             </div>
         )}
       </main>
+
+      <Dialog open={!!editingSensor} onOpenChange={(isOpen) => !isOpen && setEditingSensor(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingSensor && (
+            <AddSensorForm
+              initialData={editingSensor}
+              onSubmit={handleUpdateSensor}
+              isSaving={isSaving}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

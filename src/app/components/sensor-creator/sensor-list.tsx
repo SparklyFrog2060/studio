@@ -8,9 +8,10 @@ import { useLocale } from '../locale-provider';
 interface SensorListProps {
   sensors: Sensor[];
   onDeleteSensor: (id: string) => void;
+  onEditSensor: (sensor: Sensor) => void;
 }
 
-export default function SensorList({ sensors, onDeleteSensor }: SensorListProps) {
+export default function SensorList({ sensors, onDeleteSensor, onEditSensor }: SensorListProps) {
     const { t } = useLocale();
   if (sensors.length === 0) {
     return (
@@ -28,7 +29,7 @@ export default function SensorList({ sensors, onDeleteSensor }: SensorListProps)
     <div className="grid gap-4 md:gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {sensors.map(sensor => (
         <div key={sensor.id} className="animate-in fade-in-0 zoom-in-95 duration-300">
-            <SensorCard sensor={sensor} onDelete={onDeleteSensor} />
+            <SensorCard sensor={sensor} onDelete={onDeleteSensor} onEdit={onEditSensor} />
         </div>
       ))}
     </div>
