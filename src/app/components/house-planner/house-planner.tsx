@@ -8,7 +8,8 @@ import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Wallet, Receipt, Router } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { PlusCircle, Wallet, Receipt, Router, Mic } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -104,6 +105,26 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
   }, [shoppingListItems]);
+
+  const activeGatewaysForDisplay = useMemo(() => {
+    const devices: (Gateway | VoiceAssistant)[] = [];
+
+    // Add all dedicated gateways
+    if (gateways) {
+        devices.push(...gateways);
+    }
+
+    // Find all assigned voice assistant IDs from all rooms
+    const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
+
+    // Add voice assistants that are assigned to a room AND are gateways
+    if (voiceAssistants) {
+        const assignedAssistants = voiceAssistants.filter(va => va.isGateway && assignedAssistantIds.has(va.id));
+        devices.push(...assignedAssistants);
+    }
+    
+    return devices;
+  }, [gateways, voiceAssistants, rooms]);
 
 
   const handleAddFloor = async (data: Omit<Floor, "id" | "createdAt">) => {
@@ -205,6 +226,25 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
             </Button>
         </div>
       </div>
+      
+      {activeGatewaysForDisplay.length > 0 && (
+        <div className="p-4 border rounded-lg bg-card">
+            <h3 className="text-lg font-semibold mb-3">{t.activeGateways}</h3>
+            <div className="flex flex-wrap gap-4">
+                {activeGatewaysForDisplay.map(device => (
+                    <div key={device.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/40">
+                         {'connectivity' in device ? <Router className="h-5 w-5 text-primary" /> : <Mic className="h-5 w-5 text-primary" />}
+                         <span className="font-semibold">{device.name}</span>
+                         <div className="flex gap-1">
+                            {('connectivity' in device ? device.connectivity : device.gatewayProtocols || []).map(protocol => (
+                                <Badge key={protocol} variant="secondary" className="capitalize">{protocol}</Badge>
+                            ))}
+                         </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
