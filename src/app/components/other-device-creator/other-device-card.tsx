@@ -39,6 +39,7 @@ export default function OtherDeviceCard({ device, onDelete, onEdit }: OtherDevic
     switch (connectivity) {
       case 'matter': return { name: 'Matter', evaluation: 'good' as const };
       case 'zigbee': return { name: 'Zigbee', evaluation: 'good' as const };
+      case 'wifi': return { name: 'WiFi', evaluation: 'good' as const };
       case 'tuya': return { name: 'Tuya', evaluation: 'medium' as const };
       case 'other_app': return { name: 'Inna Aplikacja', evaluation: 'bad' as const };
       case 'bluetooth': return { name: 'Bluetooth', evaluation: 'bad' as const };
@@ -161,5 +162,3 @@ export default function OtherDeviceCard({ device, onDelete, onEdit }: OtherDevic
     </Card>
   );
 }
-
-    

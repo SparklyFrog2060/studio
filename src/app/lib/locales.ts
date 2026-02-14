@@ -49,6 +49,7 @@ export const locales = {
     wip: "This section is under construction.",
     lighting: "Lighting",
     otherDevices: "Other Devices",
+    wifi: "WiFi",
     // Switch specific
     addSwitch: "Add Switch",
     editSwitch: "Edit Switch",
@@ -187,6 +188,7 @@ export const locales = {
     wip: "Ta sekcja jest w budowie.",
     lighting: "Oświetlenie",
     otherDevices: "Inne Urządzenia",
+    wifi: "WiFi",
     // Switch specific
     addSwitch: "Dodaj Włącznik",
     editSwitch: "Edytuj Włącznik",

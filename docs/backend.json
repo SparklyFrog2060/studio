@@ -42,7 +42,8 @@
             "zigbee",
             "tuya",
             "other_app",
-            "bluetooth"
+            "bluetooth",
+            "wifi"
           ],
           "description": "The connectivity protocol of the sensor."
         },
@@ -162,7 +163,8 @@
             "zigbee",
             "tuya",
             "other_app",
-            "bluetooth"
+            "bluetooth",
+            "wifi"
           ],
           "description": "The connectivity protocol of the switch."
         },
@@ -502,7 +504,7 @@
         },
         "connectivity": {
           "type": "string",
-          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth"],
+          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth", "wifi"],
           "description": "The connectivity protocol."
         },
         "homeAssistantCompatibility": {
@@ -580,7 +582,7 @@
         },
         "connectivity": {
           "type": "string",
-          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth"],
+          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth", "wifi"],
           "description": "The connectivity protocol."
         },
         "homeAssistantCompatibility": {
@@ -673,7 +675,7 @@
                 "description": "Indicates if this specific device instance is one that the user already owns."
               }
             },
-            "required": ["instanceId", "deviceId", "customName"]
+            "required": ["instanceId", "deviceId", "customName", "isOwned"]
           }
         },
         "createdAt": {

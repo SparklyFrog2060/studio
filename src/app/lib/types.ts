@@ -7,7 +7,7 @@ export interface Specification {
   evaluation: 'good' | 'medium' | 'bad';
 }
 
-export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth';
+export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth' | 'wifi';
 export type GatewayConnectivity = 'matter' | 'zigbee' | 'bluetooth' | 'tuya';
 
 export interface BaseDevice {
@@ -63,7 +63,7 @@ export interface RoomDevice {
   instanceId: string;
   deviceId: string;
   customName: string;
-  isOwned?: boolean;
+  isOwned: boolean;
 }
 
 export interface Room {

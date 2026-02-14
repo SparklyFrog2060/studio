@@ -5,7 +5,7 @@ import type { Floor, Room, VoiceAssistant, Gateway, GatewayConnectivity, BaseDev
 import { useLocale } from '../locale-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic, Eye, EyeOff } from 'lucide-react';
+import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic, Eye, EyeOff, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +30,7 @@ interface Line {
 interface UnifiedGatewayNode {
   id: string;
   name: string;
-  protocols: GatewayConnectivity[];
+  protocols: (GatewayConnectivity | 'wifi')[];
   icon: JSX.Element;
 }
 
@@ -38,6 +38,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
   matter: 'hsl(var(--chart-1))',
   zigbee: 'hsl(var(--chart-2))',
   tuya: 'hsl(var(--chart-3))',
+  wifi: 'hsl(var(--chart-4))',
   other_app: 'hsl(var(--chart-4))',
   bluetooth: 'hsl(var(--chart-5))',
 };
@@ -154,6 +155,9 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     if (allAssignedDeviceProtocols.has('tuya')) {
         nodes.push({ id: 'cloud_tuya', name: t.tuyaCloud, protocols: ['tuya'], icon: <Cloud className="h-6 w-6" /> });
     }
+    if (allAssignedDeviceProtocols.has('wifi')) {
+        nodes.push({ id: 'local_wifi', name: t.wifi, protocols: ['wifi'], icon: <Wifi className="h-6 w-6" /> });
+    }
     if (allAssignedDeviceProtocols.has('other_app')) {
         nodes.push({ id: 'local_other_app', name: t.localIntegration, protocols: ['other_app'], icon: <Cloud className="h-6 w-6" /> });
     }
@@ -162,7 +166,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     }
 
     return Array.from(new Map(nodes.map(item => [item.id, item])).values());
-  }, [gatewayNodes, rooms, allDevicesMap, t.tuyaCloud, t.localIntegration]);
+  }, [gatewayNodes, rooms, allDevicesMap, t.tuyaCloud, t.localIntegration, t.wifi]);
 
   useLayoutEffect(() => {
     if (Object.keys(nodePositions).length === 0) return;
@@ -187,6 +191,8 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
                 targetNodeId = suitableGateway?.id;
             } else if (protocol === 'tuya') {
                 targetNodeId = 'cloud_tuya';
+            } else if (protocol === 'wifi') {
+                targetNodeId = 'local_wifi';
             } else if (protocol === 'other_app') {
                 targetNodeId = 'local_other_app';
             } else if (protocol === 'bluetooth') {

@@ -41,6 +41,8 @@ export default function SensorCard({ sensor, onDelete, onEdit }: SensorCardProps
         return { name: 'Matter', evaluation: 'good' as const };
       case 'zigbee':
         return { name: 'Zigbee', evaluation: 'good' as const };
+      case 'wifi':
+        return { name: 'WiFi', evaluation: 'good' as const };
       case 'tuya':
         return { name: 'Tuya', evaluation: 'medium' as const };
       case 'other_app':

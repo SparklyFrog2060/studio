@@ -31,7 +31,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
   quantity: z.coerce.number().min(0, "Ilość nie może być ujemna.").optional(),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
-  connectivity: z.enum(["matter", "zigbee", "tuya", "other_app", "bluetooth"]),
+  connectivity: z.enum(["matter", "zigbee", "tuya", "other_app", "bluetooth", "wifi"]),
   homeAssistantCompatibility: z.coerce.number().min(1).max(5),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
@@ -98,7 +98,7 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
     const pricePoints = evaluationToPoints(priceEvaluation);
 
     let connectivityPoints = 0;
-    if (connectivity === "matter" || connectivity === "zigbee") connectivityPoints = 10;
+    if (connectivity === "matter" || connectivity === "zigbee" || connectivity === "wifi") connectivityPoints = 10;
     else if (connectivity === "tuya") connectivityPoints = 5;
     else if (connectivity === "other_app" || connectivity === "bluetooth") connectivityPoints = 0;
     
@@ -273,6 +273,10 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="zigbee" /></FormControl>
                         <FormLabel className="font-normal">Zigbee</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="wifi" /></FormControl>
+                        <FormLabel className="font-normal">WiFi</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="tuya" /></FormControl>
