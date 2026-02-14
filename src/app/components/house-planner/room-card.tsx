@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -8,7 +7,7 @@ import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins, Lightbulb, Box, A
 import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Connectivity, GatewayConnectivity } from "@/app/lib/types";
 import { useLocale } from "../locale-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 
@@ -114,77 +113,77 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
   );
 
   return (
-    <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => onEditRoom(room)}>
-      <CardHeader className="flex-grow pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle>{room.name}</CardTitle>
-          {roomPrice > 0 && (
-              <div className="flex items-center gap-1 font-semibold text-md text-primary">
-                  <Coins className="h-4 w-4" />
-                  <span>{roomPrice.toFixed(2)} zł</span>
-              </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardFooter className="flex justify-between items-center pt-4">
-        <div className="flex gap-3">
-          <DeviceIconWithWarning
-            hasDevice={hasSensors}
-            isMissingGateway={missingSensorGateway}
-            IconComponent={Thermometer}
-            color="text-yellow-400"
-            tooltipText={formatMissingProtocols(missingSensorProtocols)}
-          />
-          <DeviceIconWithWarning
-            hasDevice={hasSwitches}
-            isMissingGateway={missingSwitchGateway}
-            IconComponent={ToggleRight}
-            color="text-green-500"
-            tooltipText={formatMissingProtocols(missingSwitchProtocols)}
-          />
-          <Mic className={hasAssistants ? "text-blue-500" : "text-gray-300"} />
-          <DeviceIconWithWarning
-            hasDevice={hasLighting}
-            isMissingGateway={missingLightingGateway}
-            IconComponent={Lightbulb}
-            color="text-orange-400"
-            tooltipText={formatMissingProtocols(missingLightingProtocols)}
-          />
-          <DeviceIconWithWarning
-            hasDevice={hasOtherDevices}
-            isMissingGateway={missingOtherDeviceGateway}
-            IconComponent={Box}
-            color="text-purple-400"
-            tooltipText={formatMissingProtocols(missingOtherDeviceProtocols)}
-          />
-        </div>
-        <div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onEditRoom(room); }}>
-                <Pencil className="h-4 w-4" />
-                <span className="sr-only">{t.edit}</span>
-            </Button>
-            <AlertDialog onOpenChange={(e) => e.valueOf() === false && e.preventDefault()}>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">{t.delete}</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t.deleteConfirmation}</AlertDialogTitle>
-                    <AlertDialogDescription>Czy na pewno chcesz usunąć to pomieszczenie?</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDeleteRoom(room.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.confirm}</AlertDialogAction>
-                </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </div>
-      </CardFooter>
-    </Card>
+    <TooltipProvider>
+      <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => onEditRoom(room)}>
+        <CardHeader className="flex-grow pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle>{room.name}</CardTitle>
+            {roomPrice > 0 && (
+                <div className="flex items-center gap-1 font-semibold text-md text-primary">
+                    <Coins className="h-4 w-4" />
+                    <span>{roomPrice.toFixed(2)} zł</span>
+                </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardFooter className="flex justify-between items-center pt-4">
+          <div className="flex gap-3">
+            <DeviceIconWithWarning
+              hasDevice={hasSensors}
+              isMissingGateway={missingSensorGateway}
+              IconComponent={Thermometer}
+              color="text-yellow-400"
+              tooltipText={formatMissingProtocols(missingSensorProtocols)}
+            />
+            <DeviceIconWithWarning
+              hasDevice={hasSwitches}
+              isMissingGateway={missingSwitchGateway}
+              IconComponent={ToggleRight}
+              color="text-green-500"
+              tooltipText={formatMissingProtocols(missingSwitchProtocols)}
+            />
+            <Mic className={hasAssistants ? "text-blue-500" : "text-gray-300"} />
+            <DeviceIconWithWarning
+              hasDevice={hasLighting}
+              isMissingGateway={missingLightingGateway}
+              IconComponent={Lightbulb}
+              color="text-orange-400"
+              tooltipText={formatMissingProtocols(missingLightingProtocols)}
+            />
+            <DeviceIconWithWarning
+              hasDevice={hasOtherDevices}
+              isMissingGateway={missingOtherDeviceGateway}
+              IconComponent={Box}
+              color="text-purple-400"
+              tooltipText={formatMissingProtocols(missingOtherDeviceProtocols)}
+            />
+          </div>
+          <div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onEditRoom(room); }}>
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">{t.edit}</span>
+              </Button>
+              <AlertDialog onOpenChange={(e) => e.valueOf() === false && e.preventDefault()}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">{t.delete}</span>
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>{t.deleteConfirmation}</AlertDialogTitle>
+                      <AlertDialogDescription>Czy na pewno chcesz usunąć to pomieszczenie?</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteRoom(room.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.confirm}</AlertDialogAction>
+                  </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+          </div>
+        </CardFooter>
+      </Card>
+    </TooltipProvider>
   );
 }
-
-    
