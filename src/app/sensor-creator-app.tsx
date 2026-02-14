@@ -13,9 +13,10 @@ import AddSwitchForm from "./components/switch-creator/add-switch-form";
 import SwitchList from "./components/switch-creator/switch-list";
 import AddVoiceAssistantForm from "./components/voice-assistant-creator/add-voice-assistant-form";
 import VoiceAssistantList from "./components/voice-assistant-creator/voice-assistant-list";
+import HousePlanner from "./components/house-planner/house-planner";
 import type { Sensor, Switch, VoiceAssistant } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Lightbulb, ToggleRight, Mic } from 'lucide-react';
+import { Languages, Building, Lightbulb, ToggleRight, Mic, LayoutGrid } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,27 +29,29 @@ import {
   DialogContent,
 } from "@/components/ui/dialog"
 
+type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants';
+
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
 
   // Sensors state
-  const { data: sensors, isLoading: isLoadingSensors } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: sensors, isLoading: isLoadingSensors } = useCollection<Sensor>(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSensor, setIsSavingSensor] = useState(false);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   
   // Switches state
-  const { data: switches, isLoading: isLoadingSwitches } = useCollection(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: switches, isLoading: isLoadingSwitches } = useCollection<Switch>(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSwitch, setIsSavingSwitch] = useState(false);
   const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
 
   // Voice Assistants state
-  const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
   const [editingVoiceAssistant, setEditingVoiceAssistant] = useState<VoiceAssistant | null>(null);
 
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<'sensors' | 'switches' | 'voice-assistants'>('sensors');
+  const [activeView, setActiveView] = useState<View>('planner');
 
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
@@ -234,25 +237,95 @@ export default function SensorCreatorApp() {
     }
   };
 
+  const renderContent = () => {
+    switch (activeView) {
+      case 'planner':
+        return <HousePlanner />;
+      case 'sensors':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} />
+            </div>
+            <div className="lg:col-span-2">
+              {isLoadingSensors ? (
+                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+              ) : (
+                <SensorList
+                  sensors={sensors || []}
+                  onDeleteSensor={handleDeleteSensor}
+                  onEditSensor={(sensor) => setEditingSensor(sensor)}
+                />
+              )}
+            </div>
+          </div>
+        );
+      case 'switches':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} />
+            </div>
+            <div className="lg:col-span-2">
+              {isLoadingSwitches ? (
+                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+              ) : (
+                <SwitchList
+                  switches={switches || []}
+                  onDeleteSwitch={handleDeleteSwitch}
+                  onEditSwitch={(switchItem) => setEditingSwitch(switchItem)}
+                />
+              )}
+            </div>
+          </div>
+        );
+      case 'voice-assistants':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} />
+            </div>
+            <div className="lg:col-span-2">
+              {isLoadingVoiceAssistants ? (
+                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+              ) : (
+                <VoiceAssistantList
+                  assistants={voiceAssistants || []}
+                  onDeleteAssistant={handleDeleteVoiceAssistant}
+                  onEditAssistant={(assistant) => setEditingVoiceAssistant(assistant)}
+                />
+              )}
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/20">
        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
-            <div className="mr-4 flex items-center">
+            <div className="mr-auto flex items-center">
                 <Building className="h-6 w-6 mr-2 text-primary" />
                 <h1 className="text-xl font-bold">{t.appName}</h1>
             </div>
 
             <nav className="hidden md:flex items-center space-x-1 mx-auto bg-muted p-1 rounded-lg">
-                <Button variant={activeView === 'sensors' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')} className="w-32">
+                <Button variant={activeView === 'planner' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('planner')} className="w-40">
+                    <LayoutGrid className="mr-2 h-4 w-4" />
+                    {t.housePlanner}
+                </Button>
+                <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')} className="w-32">
                     <Lightbulb className="mr-2 h-4 w-4" />
                     {t.sensors}
                 </Button>
-                <Button variant={activeView === 'switches' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
+                <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
                     <ToggleRight className="mr-2 h-4 w-4" />
                     {t.switches}
                 </Button>
-                 <Button variant={activeView === 'voice-assistants' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')} className="w-40">
+                 <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')} className="w-40">
                     <Mic className="mr-2 h-4 w-4" />
                     {t.voiceAssistants}
                 </Button>
@@ -280,60 +353,7 @@ export default function SensorCreatorApp() {
         </header>
 
       <main className="flex-grow container mx-auto p-4 md:p-8">
-        {activeView === 'sensors' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-1">
-                    <AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} />
-                </div>
-                <div className="lg:col-span-2">
-                    {isLoadingSensors ? (
-                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-                    ) : (
-                        <SensorList 
-                          sensors={sensors as Sensor[] || []} 
-                          onDeleteSensor={handleDeleteSensor}
-                          onEditSensor={(sensor) => setEditingSensor(sensor)}
-                        />
-                    )}
-                </div>
-            </div>
-        )}
-        {activeView === 'switches' && (
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-1">
-                    <AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} />
-                </div>
-                <div className="lg:col-span-2">
-                    {isLoadingSwitches ? (
-                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-                    ) : (
-                        <SwitchList 
-                          switches={switches as Switch[] || []} 
-                          onDeleteSwitch={handleDeleteSwitch}
-                          onEditSwitch={(switchItem) => setEditingSwitch(switchItem)}
-                        />
-                    )}
-                </div>
-            </div>
-        )}
-        {activeView === 'voice-assistants' && (
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-1">
-                    <AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} />
-                </div>
-                <div className="lg:col-span-2">
-                    {isLoadingVoiceAssistants ? (
-                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-                    ) : (
-                        <VoiceAssistantList 
-                          assistants={voiceAssistants as VoiceAssistant[] || []} 
-                          onDeleteAssistant={handleDeleteVoiceAssistant}
-                          onEditAssistant={(assistant) => setEditingVoiceAssistant(assistant)}
-                        />
-                    )}
-                </div>
-            </div>
-        )}
+        {renderContent()}
       </main>
 
       <Dialog open={!!editingSensor} onOpenChange={(isOpen) => !isOpen && setEditingSensor(null)}>

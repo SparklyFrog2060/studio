@@ -305,6 +305,59 @@
         "specs",
         "createdAt"
       ]
+    },
+    "Floor": {
+      "title": "Floor",
+      "type": "object",
+      "description": "Represents a floor in the house.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the floor."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the floor was created."
+        }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "Room": {
+      "title": "Room",
+      "type": "object",
+      "description": "Represents a room in the house.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the room."
+        },
+        "floorId": {
+          "type": "string",
+          "description": "The ID of the floor this room belongs to."
+        },
+        "sensorIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of sensor IDs assigned to this room."
+        },
+        "switchIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of switch IDs assigned to this room."
+        },
+        "voiceAssistantIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of voice assistant IDs assigned to this room."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the room was created."
+        }
+      },
+      "required": ["name", "floorId", "sensorIds", "switchIds", "voiceAssistantIds", "createdAt"]
     }
   },
   "auth": {
@@ -330,6 +383,18 @@
         "$ref": "#/entities/VoiceAssistant"
       },
       "description": "Collection to store all user-created voice assistants."
+    },
+    "floors": {
+      "schema": {
+        "$ref": "#/entities/Floor"
+      },
+      "description": "Collection to store all floors."
+    },
+    "rooms": {
+      "schema": {
+        "$ref": "#/entities/Room"
+      },
+      "description": "Collection to store all rooms."
     }
   }
 }

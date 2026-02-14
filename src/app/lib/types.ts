@@ -50,3 +50,19 @@ export interface VoiceAssistant {
   specs: Specification[];
   createdAt?: Timestamp;
 }
+
+export interface Floor {
+  id: string;
+  name: string;
+  createdAt?: Timestamp;
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  floorId: string;
+  sensorIds: string[];
+  switchIds: string[];
+  voiceAssistantIds: string[];
+  createdAt?: Timestamp;
+}
