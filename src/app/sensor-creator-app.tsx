@@ -16,7 +16,7 @@ import VoiceAssistantList from "./components/voice-assistant-creator/voice-assis
 import HousePlanner from "./components/house-planner/house-planner";
 import type { Sensor, Switch, VoiceAssistant } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Lightbulb, ToggleRight, Mic, LayoutGrid } from 'lucide-react';
+import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -318,7 +318,7 @@ export default function SensorCreatorApp() {
                     {t.housePlanner}
                 </Button>
                 <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')} className="w-32">
-                    <Lightbulb className="mr-2 h-4 w-4" />
+                    <Thermometer className="mr-2 h-4 w-4" />
                     {t.sensors}
                 </Button>
                 <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
@@ -394,3 +394,5 @@ export default function SensorCreatorApp() {
     </div>
   );
 }
+
+    
