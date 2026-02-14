@@ -114,28 +114,45 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
   const lightingTooltipContent = useMemo(() => formatMissingGatewayInfo(missingLightingDetails), [missingLightingDetails]);
   const otherDeviceTooltipContent = useMemo(() => formatMissingGatewayInfo(missingOtherDeviceDetails), [missingOtherDeviceDetails]);
 
-  const roomPrice = useMemo(() => {
-    const sensorPrice = (room.sensorIds || []).reduce((sum, id) => {
-        const device = sensors.find(s => s.id === id);
+  const { totalPrice, shoppingPrice } = useMemo(() => {
+    const allDevices = new Map([
+      ...sensors.map(d => [d.id, d]),
+      ...switches.map(d => [d.id, d]),
+      ...voiceAssistants.map(d => [d.id, d]),
+      ...lighting.map(d => [d.id, d]),
+      ...otherDevices.map(d => [d.id, d]),
+    ]);
+
+    const allDeviceIdsInRoom = [
+      ...(room.sensorIds || []),
+      ...(room.switchIds || []),
+      ...(room.voiceAssistantIds || []),
+      ...(room.lightingIds || []),
+      ...(room.otherDeviceIds || []),
+    ];
+
+    const totalPrice = allDeviceIdsInRoom.reduce((sum, id) => {
+        const device = allDevices.get(id);
         return sum + (device?.price || 0);
     }, 0);
-    const switchPrice = (room.switchIds || []).reduce((sum, id) => {
-        const device = switches.find(s => s.id === id);
-        return sum + (device?.price || 0);
-    }, 0);
-    const assistantPrice = (room.voiceAssistantIds || []).reduce((sum, id) => {
-        const device = voiceAssistants.find(v => v.id === id);
-        return sum + (device?.price || 0);
-    }, 0);
-    const lightingPrice = (room.lightingIds || []).reduce((sum, id) => {
-        const device = lighting.find(l => l.id === id);
-        return sum + (device?.price || 0);
-    }, 0);
-    const otherDevicePrice = (room.otherDeviceIds || []).reduce((sum, id) => {
-        const device = otherDevices.find(d => d.id === id);
-        return sum + (device?.price || 0);
-    }, 0);
-    return sensorPrice + switchPrice + assistantPrice + lightingPrice + otherDevicePrice;
+
+    const usedOwnedQuantities = new Map<string, number>();
+    let shoppingPrice = 0;
+    for (const deviceId of allDeviceIdsInRoom) {
+        const device = allDevices.get(deviceId);
+        if (!device) continue;
+        
+        const ownedQuantity = device.quantity || 0;
+        const usedCount = usedOwnedQuantities.get(deviceId) || 0;
+
+        if (usedCount < ownedQuantity) {
+            usedOwnedQuantities.set(deviceId, usedCount + 1);
+        } else {
+            shoppingPrice += (device.price || 0);
+        }
+    }
+
+    return { totalPrice, shoppingPrice };
   }, [room, sensors, switches, voiceAssistants, lighting, otherDevices]);
   
   const DeviceIconWithWarning = ({ hasDevice, isMissingGateway, IconComponent, color, tooltipContent }: any) => (
@@ -168,11 +185,18 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
         <CardHeader className="flex-grow pb-2">
           <div className="flex justify-between items-start">
             <CardTitle>{room.name}</CardTitle>
-            {roomPrice > 0 && (
-                <div className="flex items-center gap-1 font-semibold text-md text-primary">
-                    <Coins className="h-4 w-4" />
-                    <span>{roomPrice.toFixed(2)} zł</span>
+            {totalPrice > 0 && (
+              <div className="text-right">
+                <div className="flex items-center justify-end gap-1 font-semibold text-md text-primary">
+                  <Coins className="h-4 w-4" />
+                  <span>{shoppingPrice.toFixed(2)} zł</span>
                 </div>
+                {shoppingPrice < totalPrice && (
+                  <div className="text-xs text-muted-foreground">
+                    Wartość: {totalPrice.toFixed(2)} zł
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>
@@ -254,7 +278,3 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
     </TooltipProvider>
   );
 }
-
-
-
-    
