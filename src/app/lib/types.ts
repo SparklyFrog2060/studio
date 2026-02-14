@@ -122,4 +122,8 @@ export interface Room {
   createdAt?: Timestamp;
 }
 
+export interface HouseConfig {
+  gatewayIds: string[];
+}
+
     

@@ -1,11 +1,13 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, Connectivity } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, Connectivity, HouseConfig } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
+import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,7 @@ import EditRoomDialog from "./edit-room-dialog";
 import FloorSection from "./floor-section";
 import ShoppingListDialog from "./shopping-list-dialog";
 import type { View } from "@/app/sensor-creator-app";
+import AddHouseGatewayDialog from "./add-house-gateway-dialog";
 
 
 interface ShoppingListItem {
@@ -42,13 +45,17 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
   const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
   const { data: gateways } = useCollection<Gateway>(db ? "gateways" : null);
+  const { data: houseConfig, isLoading: isLoadingHouseConfig } = useDoc<HouseConfig>(db ? "house_config/main" : null);
 
 
   const [isAddFloorDialogOpen, setIsAddFloorDialogOpen] = useState(false);
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
+  const [isAddGatewayDialogOpen, setIsAddGatewayDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+
+  const assignedGatewayIds = useMemo(() => houseConfig?.gatewayIds || [], [houseConfig]);
 
   const neededProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocolSet = new Set<GatewayConnectivity>();
@@ -77,35 +84,13 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     return protocolSet;
   }, [rooms, sensors, switches, lighting, otherDevices]);
 
-  const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
-    const protocols = new Set<GatewayConnectivity>();
-    if (!neededProtocols.size && (!rooms || rooms.length === 0)) return protocols;
+  const assignedGateways = useMemo(() => {
+    if (!gateways || !assignedGatewayIds) return [];
+    return gateways.filter(g => assignedGatewayIds.includes(g.id));
+  }, [gateways, assignedGatewayIds]);
 
-    (gateways || []).forEach(g => {
-        if (g.connectivity.some(p => neededProtocols.has(p))) {
-            g.connectivity.forEach(p => protocols.add(p));
-        }
-    });
-
-    const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
-    (voiceAssistants || [])
-      .filter(va => va.isGateway && assignedAssistantIds.has(va.id))
-      .forEach(va => {
-        (va.gatewayProtocols || []).forEach(p => protocols.add(p));
-      });
-
-    return protocols;
-  }, [neededProtocols, gateways, voiceAssistants, rooms]);
-  
   const activeGatewaysForDisplay = useMemo(() => {
-    const devices: (Gateway | VoiceAssistant)[] = [];
-
-    if (gateways && neededProtocols.size > 0) {
-      const activeDedicatedGateways = gateways.filter(g =>
-        g.connectivity.some(p => neededProtocols.has(p))
-      );
-      devices.push(...activeDedicatedGateways);
-    }
+    const devices: (Gateway | VoiceAssistant)[] = [...assignedGateways];
 
     const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
     if (voiceAssistants) {
@@ -114,10 +99,21 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     }
 
     return Array.from(new Map(devices.map(d => [d.id, d])).values());
-  }, [gateways, voiceAssistants, rooms, neededProtocols]);
+  }, [assignedGateways, voiceAssistants, rooms]);
+  
+  const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
+    const protocols = new Set<GatewayConnectivity>();
+    
+    activeGatewaysForDisplay.forEach(device => {
+        const deviceProtocols = 'connectivity' in device ? device.connectivity : device.gatewayProtocols || [];
+        deviceProtocols.forEach(p => protocols.add(p as GatewayConnectivity));
+    });
+
+    return protocols;
+  }, [activeGatewaysForDisplay]);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
-    if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices) return [];
+    if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices || !gateways) return [];
 
     const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
     const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
@@ -145,12 +141,12 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         .filter(d => allAssignedOtherDeviceIds.has(d.id))
         .map(d => ({ name: d.name, price: d.price || 0, type: 'OtherDevice' as const, link: d.link }));
         
-    const gatewayItems = activeGatewaysForDisplay
-      .filter(d => 'connectivity' in d)
+    const gatewayItems = assignedGateways
+      .filter(g => g.connectivity.some(p => neededProtocols.has(p)))
       .map(g => ({ name: g.name, price: g.price || 0, type: 'Gateway' as const, link: g.link }));
 
     return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices, ...gatewayItems];
-  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, activeGatewaysForDisplay]);
+  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, assignedGateways, neededProtocols, gateways]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
@@ -221,8 +217,22 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         setIsSaving(false);
     }
   };
+  
+  const handleUpdateHouseGateways = async (gatewayIds: string[]) => {
+    if (!db) return;
+    setIsSaving(true);
+    try {
+      await updateHouseConfig(db, gatewayIds);
+      toast({ title: "Sukces!", description: "Bramki domu zostały zaktualizowane." });
+      setIsAddGatewayDialogOpen(false);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować bramek." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const isLoading = isLoadingFloors || isLoadingRooms;
+  const isLoading = isLoadingFloors || isLoadingRooms || isLoadingHouseConfig;
 
   return (
     <div className="space-y-6">
@@ -249,9 +259,9 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
             <PlusCircle className="mr-2 h-4 w-4" />
             {t.addRoom}
             </Button>
-            <Button onClick={() => setActiveView('gateways')}>
+            <Button onClick={() => setIsAddGatewayDialogOpen(true)}>
                 <Router className="mr-2 h-4 w-4" />
-                {t.addGateway}
+                {t.manageHouseGateways}
             </Button>
         </div>
       </div>
@@ -342,6 +352,17 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         items={shoppingListItems}
         totalPrice={totalHousePrice}
       />
+
+      <AddHouseGatewayDialog
+        isOpen={isAddGatewayDialogOpen}
+        onOpenChange={setIsAddGatewayDialogOpen}
+        onSubmit={handleUpdateHouseGateways}
+        isSaving={isSaving}
+        allGateways={gateways || []}
+        assignedGatewayIds={assignedGatewayIds}
+      />
     </div>
   );
 }
+
+    

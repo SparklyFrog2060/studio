@@ -658,6 +658,23 @@
         }
       },
       "required": ["name", "floorId", "sensorIds", "switchIds", "voiceAssistantIds", "lightingIds", "otherDeviceIds", "createdAt"]
+    },
+    "HouseConfig": {
+      "title": "HouseConfig",
+      "type": "object",
+      "description": "Represents the main house configuration.",
+      "properties": {
+        "gatewayIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of gateway IDs assigned to the house."
+        }
+      },
+      "required": [
+        "gatewayIds"
+      ]
     }
   },
   "auth": {
@@ -713,6 +730,12 @@
         "$ref": "#/entities/Room"
       },
       "description": "Collection to store all rooms."
+    },
+    "house_config": {
+      "schema": {
+        "$ref": "#/entities/HouseConfig"
+      },
+      "description": "Stores the main house configuration."
     }
   }
 }

@@ -78,6 +78,7 @@ export const locales = {
     gatewayName: "Gateway Name",
     gatewayNamePlaceholder: "e.g., Zigbee Gateway",
     noGateways: "No gateways created yet.",
+    noGatewaysCreated: "No gateways have been created yet. Go to the Gateways tab to add one.",
     clickToAddGateway: "Fill out the form to add a new gateway.",
     // Lighting specific
     addLighting: "Add Lighting",
@@ -127,6 +128,8 @@ export const locales = {
     shoppingList: "Shopping List",
     total: "Total",
     activeGateways: "Active Gateways",
+    manageHouseGateways: "Manage Gateways",
+    selectGatewaysForHouse: "Select which gateways are part of this house.",
     theme: "Theme",
     light: "Light",
     dark: "Dark",
@@ -211,6 +214,7 @@ export const locales = {
     gatewayName: "Nazwa bramki",
     gatewayNamePlaceholder: "np. Bramka Zigbee",
     noGateways: "Nie utworzono jeszcze żadnych bramek.",
+    noGatewaysCreated: "Nie utworzono jeszcze żadnych bramek. Przejdź do zakładki Bramki, aby ją dodać.",
     clickToAddGateway: "Wypełnij formularz, aby dodać nową bramkę.",
     // Lighting specific
     addLighting: "Dodaj Oświetlenie",
@@ -260,6 +264,8 @@ export const locales = {
     shoppingList: "Lista Zakupów",
     total: "Suma",
     activeGateways: "Aktywne Bramki",
+    manageHouseGateways: "Zarządzaj Bramkami",
+    selectGatewaysForHouse: "Wybierz, które bramki należą do tego domu.",
     theme: "Motyw",
     light: "Jasny",
     dark: "Ciemny",
@@ -268,3 +274,5 @@ export const locales = {
 };
 
 export type Locale = keyof typeof locales;
+
+    

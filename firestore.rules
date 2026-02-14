@@ -25,6 +25,9 @@ service cloud.firestore {
     match /rooms/{roomId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /house_config/{configId} {
+      allow read, write: if true;
+    }
   }
 }
 
