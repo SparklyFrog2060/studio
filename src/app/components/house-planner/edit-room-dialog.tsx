@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useLocale } from "@/app/components/locale-provider";
 import type { Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice } from "@/app/lib/types";
+import { Plus, Minus } from "lucide-react";
 
 interface EditRoomDialogProps {
   isOpen: boolean;
@@ -37,6 +37,7 @@ const formSchema = z.object({
 });
 
 type RoomFormData = z.infer<typeof formSchema>;
+type DeviceField = keyof Omit<RoomFormData, 'name'>;
 
 export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, room, sensors, switches, voiceAssistants, lighting, otherDevices }: EditRoomDialogProps) {
   const { t } = useLocale();
@@ -65,6 +66,64 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
       });
     }
   }, [room, form]);
+
+  const handleDeviceCountChange = (field: DeviceField, deviceId: string, change: 'increment' | 'decrement') => {
+    const currentIds = form.getValues(field) || [];
+    if (change === 'increment') {
+        form.setValue(field, [...currentIds, deviceId]);
+    } else {
+        const index = currentIds.lastIndexOf(deviceId);
+        if (index > -1) {
+            const newIds = [...currentIds];
+            newIds.splice(index, 1);
+            form.setValue(field, newIds);
+        }
+    }
+  };
+
+  const renderDeviceSelector = (
+    field: DeviceField, 
+    devices: {id: string, name: string}[], 
+    noDevicesText: string
+  ) => {
+    const watchedIds = form.watch(field) || [];
+    return (
+      <ScrollArea className="max-h-48">
+        <div className="space-y-3 p-1">
+          {devices.length > 0 ? devices.map(device => {
+            const count = watchedIds.filter(id => id === device.id).length;
+            return (
+              <div key={device.id} className="flex items-center justify-between">
+                <FormLabel className="font-normal text-sm">{device.name}</FormLabel>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => handleDeviceCountChange(field, device.id, 'decrement')}
+                    disabled={count === 0}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="font-medium w-4 text-center">{count}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => handleDeviceCountChange(field, device.id, 'increment')}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          }) : <p className="p-2 text-sm text-muted-foreground">{noDevicesText}</p>}
+        </div>
+      </ScrollArea>
+    );
+  };
   
   if (!room) return null;
 
@@ -96,32 +155,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               <AccordionItem value="sensors">
                 <AccordionTrigger className="text-base font-semibold">{t.sensors}</AccordionTrigger>
                 <AccordionContent>
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 p-1">
-                      {sensors.length > 0 ? sensors.map(sensor => (
-                        <FormField
-                          key={sensor.id}
-                          control={form.control}
-                          name="sensorIds"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(sensor.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), sensor.id])
-                                      : field.onChange(field.value?.filter(id => id !== sensor.id))
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">{sensor.name}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noSensorsCreated}</p>}
-                    </div>
-                  </ScrollArea>
+                  {renderDeviceSelector('sensorIds', sensors, t.noSensorsCreated)}
                 </AccordionContent>
               </AccordionItem>
 
@@ -129,32 +163,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               <AccordionItem value="switches">
                 <AccordionTrigger className="text-base font-semibold">{t.switches}</AccordionTrigger>
                 <AccordionContent>
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 p-1">
-                      {switches.length > 0 ? switches.map(switchItem => (
-                        <FormField
-                          key={switchItem.id}
-                          control={form.control}
-                          name="switchIds"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(switchItem.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), switchItem.id])
-                                      : field.onChange(field.value?.filter(id => id !== switchItem.id))
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">{switchItem.name}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noSwitchesCreated}</p>}
-                    </div>
-                  </ScrollArea>
+                  {renderDeviceSelector('switchIds', switches, t.noSwitchesCreated)}
                 </AccordionContent>
               </AccordionItem>
 
@@ -162,32 +171,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               <AccordionItem value="voice-assistants">
                 <AccordionTrigger className="text-base font-semibold">{t.voiceAssistants}</AccordionTrigger>
                 <AccordionContent>
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 p-1">
-                      {voiceAssistants.length > 0 ? voiceAssistants.map(assistant => (
-                        <FormField
-                          key={assistant.id}
-                          control={form.control}
-                          name="voiceAssistantIds"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(assistant.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), assistant.id])
-                                      : field.onChange(field.value?.filter(id => id !== assistant.id))
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">{assistant.name}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noVoiceAssistantsCreated}</p>}
-                    </div>
-                  </ScrollArea>
+                  {renderDeviceSelector('voiceAssistantIds', voiceAssistants, t.noVoiceAssistantsCreated)}
                 </AccordionContent>
               </AccordionItem>
               
@@ -195,32 +179,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
               <AccordionItem value="lighting">
                 <AccordionTrigger className="text-base font-semibold">{t.lighting}</AccordionTrigger>
                 <AccordionContent>
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 p-1">
-                      {lighting.length > 0 ? lighting.map(item => (
-                        <FormField
-                          key={item.id}
-                          control={form.control}
-                          name="lightingIds"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), item.id])
-                                      : field.onChange(field.value?.filter(id => id !== item.id))
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noLightingCreated}</p>}
-                    </div>
-                  </ScrollArea>
+                  {renderDeviceSelector('lightingIds', lighting, t.noLightingCreated)}
                 </AccordionContent>
               </AccordionItem>
 
@@ -228,32 +187,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                <AccordionItem value="other-devices">
                 <AccordionTrigger className="text-base font-semibold">{t.otherDevices}</AccordionTrigger>
                 <AccordionContent>
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 p-1">
-                      {otherDevices.length > 0 ? otherDevices.map(item => (
-                        <FormField
-                          key={item.id}
-                          control={form.control}
-                          name="otherDeviceIds"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), item.id])
-                                      : field.onChange(field.value?.filter(id => id !== item.id))
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">{item.name}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      )) : <p className="p-2 text-sm text-muted-foreground">{t.noOtherDevicesCreated}</p>}
-                    </div>
-                  </ScrollArea>
+                  {renderDeviceSelector('otherDeviceIds', otherDevices, t.noOtherDevicesCreated)}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
