@@ -90,49 +90,64 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
 
       const newLines: Line[] = [];
 
-      const assignedDevices = rooms.flatMap(room => {
-          return [
-              ...sensors.filter(d => room.sensorIds.includes(d.id)),
-              ...switches.filter(d => room.switchIds.includes(d.id)),
-              ...lighting.filter(d => room.lightingIds.includes(d.id)),
-              ...otherDevices.filter(d => room.otherDeviceIds.includes(d.id)),
-          ];
-      });
+      const allAssignedDevices = rooms.flatMap(room => [
+        ...room.sensorIds.map(id => sensors.find(d => d.id === id)),
+        ...room.switchIds.map(id => switches.find(d => d.id === id)),
+        ...room.lightingIds.map(id => lighting.find(d => d.id === id)),
+        ...room.otherDeviceIds.map(id => otherDevices.find(d => d.id === id)),
+      ]).filter((d): d is Sensor | Switch | Lighting | OtherDevice => !!d);
 
-      const connectivityNodeMap: Record<string, { id: string }> = {};
-      activeGateways.forEach(g => {
-        const protocols = 'connectivity' in g ? g.connectivity : g.gatewayProtocols || [];
-        protocols.forEach(p => {
-            connectivityNodeMap[p] = { id: g.id };
-        });
-      });
-      connectivityNodeMap['tuya'] = { id: 'cloud_tuya' };
-      connectivityNodeMap['other_app'] = { id: 'local_other_app' };
-      connectivityNodeMap['bluetooth'] = { id: 'local_bluetooth' };
-      
-      assignedDevices.forEach(device => {
-        const protocol = getDeviceProtocol(device);
-        if (protocol && connectivityNodeMap[protocol]) {
-            newLines.push({
-                from: device.id,
-                to: connectivityNodeMap[protocol].id,
-                color: PROTOCOL_COLORS[protocol] || 'gray'
-            });
-        }
-      });
+      const targetNodes = new Set<string>();
 
-      // Connect gateways to Home Assistant
-      Object.values(connectivityNodeMap).forEach(node => {
-          const uniqueIds = new Set(newLines.map(l => l.to));
-          if (uniqueIds.has(node.id)) {
-             newLines.push({
-                  from: node.id,
-                  to: 'home_assistant',
-                  color: 'hsl(var(--muted-foreground))'
-              })
+      allAssignedDevices.forEach(device => {
+          const protocol = device.connectivity;
+          if (!protocol) return;
+
+          let targetNodeId: string | null = null;
+          
+          if (protocol === 'matter' || protocol === 'zigbee') {
+              const gateway = activeGateways.find(g => ('connectivity' in g ? g.connectivity : g.gatewayProtocols || []).includes(protocol));
+              if (gateway) {
+                  targetNodeId = gateway.id;
+              }
+          } else if (protocol === 'tuya') {
+              targetNodeId = 'cloud_tuya';
+          } else if (protocol === 'other_app') {
+              targetNodeId = 'local_other_app';
+          } else if (protocol === 'bluetooth') {
+              targetNodeId = 'local_bluetooth';
+          }
+
+          if (targetNodeId) {
+              newLines.push({
+                  from: device.id,
+                  to: targetNodeId,
+                  color: PROTOCOL_COLORS[protocol] || 'gray'
+              });
+              targetNodes.add(targetNodeId);
           }
       });
       
+      // Connect active gateways that might not have devices yet
+      activeGateways.forEach(g => {
+        targetNodes.add(g.id);
+      });
+      
+      const hardcodedNodes = ['cloud_tuya', 'local_other_app', 'local_bluetooth'];
+      hardcodedNodes.forEach(nodeId => {
+        if(newLines.some(line => line.to === nodeId)) {
+            targetNodes.add(nodeId);
+        }
+      });
+
+      targetNodes.forEach(targetId => {
+          newLines.push({
+              from: targetId,
+              to: 'home_assistant',
+              color: 'hsl(var(--muted-foreground))'
+          });
+      });
+
       setLines(newLines);
 
   }, [rooms, sensors, switches, lighting, otherDevices, activeGateways, nodePositions]);
