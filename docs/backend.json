@@ -214,6 +214,97 @@
         "specs",
         "createdAt"
       ]
+    },
+    "VoiceAssistant": {
+      "title": "VoiceAssistant",
+      "type": "object",
+      "description": "Represents a user-created voice assistant with technical specifications.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the voice assistant."
+        },
+        "brand": {
+          "type": "string",
+          "description": "The brand of the voice assistant."
+        },
+        "link": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL link to the voice assistant's product page."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the voice assistant."
+        },
+        "priceEvaluation": {
+          "type": "string",
+          "enum": [
+            "good",
+            "medium",
+            "bad"
+          ],
+          "description": "The evaluation of the voice assistant's price."
+        },
+        "score": {
+          "type": "number",
+          "description": "The calculated score of the voice assistant from 1 to 10."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of tags associated with the voice assistant."
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "evaluation": {
+                "type": "string",
+                "enum": [
+                  "good",
+                  "medium",
+                  "bad"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "value",
+              "evaluation"
+            ]
+          },
+          "description": "A list of technical specifications for the voice assistant."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the voice assistant was created."
+        }
+      },
+      "required": [
+        "name",
+        "brand",
+        "price",
+        "priceEvaluation",
+        "score",
+        "tags",
+        "specs",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -222,19 +313,23 @@
     ]
   },
   "firestore": {
-    "collections": {
-      "sensors": {
-        "schema": {
-          "$ref": "#/entities/Sensor"
-        },
-        "description": "Collection to store all user-created sensors."
+    "sensors": {
+      "schema": {
+        "$ref": "#/entities/Sensor"
       },
-      "switches": {
-        "schema": {
-          "$ref": "#/entities/Switch"
-        },
-        "description": "Collection to store all user-created switches."
-      }
+      "description": "Collection to store all user-created sensors."
+    },
+    "switches": {
+      "schema": {
+        "$ref": "#/entities/Switch"
+      },
+      "description": "Collection to store all user-created switches."
+    },
+    "voice_assistants": {
+      "schema": {
+        "$ref": "#/entities/VoiceAssistant"
+      },
+      "description": "Collection to store all user-created voice assistants."
     }
   }
 }

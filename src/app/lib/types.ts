@@ -37,3 +37,16 @@ export interface Switch {
   specs: Specification[];
   createdAt?: Timestamp;
 }
+
+export interface VoiceAssistant {
+  id: string; // Document ID from firestore
+  name: string;
+  brand: string;
+  link?: string;
+  price: number;
+  priceEvaluation: 'good' | 'medium' | 'bad';
+  score: number;
+  tags: string[];
+  specs: Specification[];
+  createdAt?: Timestamp;
+}

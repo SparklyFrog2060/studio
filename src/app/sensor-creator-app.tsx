@@ -5,14 +5,17 @@ import { useState } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
+import { addVoiceAssistant, deleteVoiceAssistant, updateVoiceAssistant } from "@/lib/firebase/voice-assistants";
 import { useToast } from "@/hooks/use-toast";
 import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
 import AddSwitchForm from "./components/switch-creator/add-switch-form";
 import SwitchList from "./components/switch-creator/switch-list";
-import type { Sensor, Switch } from "./lib/types";
+import AddVoiceAssistantForm from "./components/voice-assistant-creator/add-voice-assistant-form";
+import VoiceAssistantList from "./components/voice-assistant-creator/voice-assistant-list";
+import type { Sensor, Switch, VoiceAssistant } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Lightbulb, ToggleRight } from 'lucide-react';
+import { Languages, Building, Lightbulb, ToggleRight, Mic } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,8 +42,13 @@ export default function SensorCreatorApp() {
   const [isSavingSwitch, setIsSavingSwitch] = useState(false);
   const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
 
+  // Voice Assistants state
+  const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
+  const [editingVoiceAssistant, setEditingVoiceAssistant] = useState<VoiceAssistant | null>(null);
+
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<'sensors' | 'switches'>('sensors');
+  const [activeView, setActiveView] = useState<'sensors' | 'switches' | 'voice-assistants'>('sensors');
 
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
@@ -165,6 +173,66 @@ export default function SensorCreatorApp() {
     }
   };
 
+  const handleAddVoiceAssistant = async (data: Omit<VoiceAssistant, "id" | "createdAt">) => {
+    if (!db) return;
+    setIsSavingVoiceAssistant(true);
+    try {
+      await addVoiceAssistant(db, data);
+      toast({
+        title: "Sukces!",
+        description: `Asystent "${data.name}" został dodany.`,
+      });
+    } catch (error) {
+      console.error("Error adding voice assistant: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się dodać asystenta.",
+      });
+    } finally {
+      setIsSavingVoiceAssistant(false);
+    }
+  };
+
+  const handleUpdateVoiceAssistant = async (data: Omit<VoiceAssistant, "id" | "createdAt">) => {
+    if (!db || !editingVoiceAssistant) return;
+    setIsSavingVoiceAssistant(true);
+    try {
+      await updateVoiceAssistant(db, editingVoiceAssistant.id, data);
+      toast({
+        title: "Sukces!",
+        description: `Asystent "${data.name}" został zaktualizowany.`,
+      });
+      setEditingVoiceAssistant(null);
+    } catch (error) {
+      console.error("Error updating voice assistant: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się zaktualizować asystenta.",
+      });
+    } finally {
+      setIsSavingVoiceAssistant(false);
+    }
+  };
+
+  const handleDeleteVoiceAssistant = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteVoiceAssistant(db, id);
+      toast({
+        title: "Sukces!",
+        description: "Asystent został usunięty.",
+      });
+    } catch (error) {
+      console.error("Error deleting voice assistant: ", error);
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się usunąć asystenta.",
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/20">
@@ -183,6 +251,10 @@ export default function SensorCreatorApp() {
                 <Button variant={activeView === 'switches' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
                     <ToggleRight className="mr-2 h-4 w-4" />
                     {t.switches}
+                </Button>
+                 <Button variant={activeView === 'voice-assistants' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')} className="w-40">
+                    <Mic className="mr-2 h-4 w-4" />
+                    {t.voiceAssistants}
                 </Button>
             </nav>
             
@@ -244,6 +316,24 @@ export default function SensorCreatorApp() {
                 </div>
             </div>
         )}
+        {activeView === 'voice-assistants' && (
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-1">
+                    <AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} />
+                </div>
+                <div className="lg:col-span-2">
+                    {isLoadingVoiceAssistants ? (
+                        <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
+                    ) : (
+                        <VoiceAssistantList 
+                          assistants={voiceAssistants as VoiceAssistant[] || []} 
+                          onDeleteAssistant={handleDeleteVoiceAssistant}
+                          onEditAssistant={(assistant) => setEditingVoiceAssistant(assistant)}
+                        />
+                    )}
+                </div>
+            </div>
+        )}
       </main>
 
       <Dialog open={!!editingSensor} onOpenChange={(isOpen) => !isOpen && setEditingSensor(null)}>
@@ -265,6 +355,18 @@ export default function SensorCreatorApp() {
               initialData={editingSwitch}
               onSubmit={handleUpdateSwitch}
               isSaving={isSavingSwitch}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={!!editingVoiceAssistant} onOpenChange={(isOpen) => !isOpen && setEditingVoiceAssistant(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingVoiceAssistant && (
+            <AddVoiceAssistantForm
+              initialData={editingVoiceAssistant}
+              onSubmit={handleUpdateVoiceAssistant}
+              isSaving={isSavingVoiceAssistant}
             />
           )}
         </DialogContent>

@@ -7,5 +7,8 @@ service cloud.firestore {
     match /switches/{switchId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /voice_assistants/{assistantId} {
+      allow read, write: if true; // Allow all reads and writes for now
+    }
   }
 }

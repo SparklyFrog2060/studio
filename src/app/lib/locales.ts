@@ -42,6 +42,7 @@ export const locales = {
     english: "English",
     sensors: "Sensors",
     switches: "Switches",
+    voiceAssistants: "Voice Assistants",
     wip: "This section is under construction.",
     // Switch specific
     addSwitch: "Add Switch",
@@ -54,6 +55,14 @@ export const locales = {
     inWall: "In-wall",
     noSwitches: "No switches created yet.",
     clickToAddSwitch: "Fill out the form to add a new switch.",
+    // Voice Assistant specific
+    addVoiceAssistant: "Add Assistant",
+    editVoiceAssistant: "Edit Assistant",
+    saveVoiceAssistant: "Save Assistant",
+    voiceAssistantName: "Assistant Name",
+    voiceAssistantNamePlaceholder: "e.g., Google Home",
+    noVoiceAssistants: "No voice assistants created yet.",
+    clickToAddVoiceAssistant: "Fill out the form to add a new assistant.",
   },
   pl: {
     appName: "Kreator Urządzeń",
@@ -98,6 +107,7 @@ export const locales = {
     english: "Angielski",
     sensors: "Czujniki",
     switches: "Włączniki",
+    voiceAssistants: "Asystenci Głosowi",
     wip: "Ta sekcja jest w budowie.",
     // Switch specific
     addSwitch: "Dodaj Włącznik",
@@ -110,6 +120,14 @@ export const locales = {
     inWall: "Dopuszkowy",
     noSwitches: "Nie utworzono jeszcze żadnych włączników.",
     clickToAddSwitch: "Wypełnij formularz, aby dodać nowy włącznik.",
+    // Voice Assistant specific
+    addVoiceAssistant: "Dodaj Asystenta",
+    editVoiceAssistant: "Edytuj Asystenta",
+    saveVoiceAssistant: "Zapisz Asystenta",
+    voiceAssistantName: "Nazwa asystenta",
+    voiceAssistantNamePlaceholder: "np. Google Home",
+    noVoiceAssistants: "Nie utworzono jeszcze żadnych asystentów.",
+    clickToAddVoiceAssistant: "Wypełnij formularz, aby dodać nowego asystenta.",
   },
 };
 
