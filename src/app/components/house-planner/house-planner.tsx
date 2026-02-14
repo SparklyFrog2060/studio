@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice } from "@/app/lib/types";
@@ -79,14 +79,23 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const activeGatewaysForDisplay = useMemo(() => {
     const devices: (Gateway | VoiceAssistant)[] = [...assignedGateways];
     if (voiceAssistants && rooms) {
-        const assignedAssistantIds = new Set(rooms.flatMap(r => r.devices?.map(d => d.deviceId) || []));
+        const roomDeviceInstances = rooms.flatMap(r => r.devices || []);
+        const assignedAssistantIds = new Set<string>();
+
+        roomDeviceInstances.forEach(instance => {
+            const device = allDevicesMap.get(instance.deviceId);
+            if(device?.type === 'voice-assistant') {
+                assignedAssistantIds.add(device.id);
+            }
+        });
+
         const assistantGateways = voiceAssistants.filter(va => 
             va.isGateway && assignedAssistantIds.has(va.id)
         );
         devices.push(...assistantGateways);
     }
     return Array.from(new Map(devices.map(d => [d.id, d])).values());
-}, [assignedGateways, voiceAssistants, rooms]);
+}, [assignedGateways, voiceAssistants, rooms, allDevicesMap]);
   
   const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocols = new Set<GatewayConnectivity>();
@@ -102,14 +111,15 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     
     const itemsToBuy: ShoppingListItem[] = [];
     
-    // Add devices from rooms that are not marked as owned
+    // Part 1: Process all devices placed in rooms
     rooms.forEach(room => {
         (room.devices || []).forEach(instance => {
-            if (!instance.isOwned) {
+            // An item should be on the shopping list if it's NOT marked as owned.
+            if (instance.isOwned === false) { 
                 const device = allDevicesMap.get(instance.deviceId);
                 if (device) {
                     itemsToBuy.push({
-                        name: device.name,
+                        name: instance.customName || device.name, // Use custom name if available
                         price: device.price || 0,
                         type: device.type as ShoppingListItem['type'],
                         link: device.link,
@@ -119,22 +129,13 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         });
     });
 
-    // Check if assigned gateways are owned
-    const assignedGatewayInstancesInRooms = new Set<string>();
-     rooms.forEach(room => {
-        (room.devices || []).forEach(instance => {
-             if (instance.isOwned) {
-                const device = allDevicesMap.get(instance.deviceId);
-                if (device?.type === 'gateway' || (device?.type === 'voice-assistant' && (device as VoiceAssistant).isGateway)) {
-                    assignedGatewayInstancesInRooms.add(instance.deviceId);
-                }
-             }
-        });
-    });
+    // Part 2: Process house-level gateways that might not be in a room
+    const deviceIdsInRooms = new Set(rooms.flatMap(r => r.devices?.map(d => d.deviceId) || []));
 
     assignedGateways.forEach(gateway => {
-        if (!assignedGatewayInstancesInRooms.has(gateway.id)) {
-            // This logic assumes 1 gateway needed if assigned, can be refined
+        // Only consider this gateway if it's not already handled as a room device
+        if (!deviceIdsInRooms.has(gateway.id)) {
+            // If the user doesn't own any quantity of this gateway, it must be bought.
             if ((gateway.quantity || 0) < 1) {
                  itemsToBuy.push({
                     name: gateway.name,
