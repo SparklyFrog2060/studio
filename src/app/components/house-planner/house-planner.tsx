@@ -19,6 +19,7 @@ import FloorSection from "./floor-section";
 import ShoppingListDialog from "./shopping-list-dialog";
 import type { View } from "@/app/sensor-creator-app";
 import AddHouseGatewayDialog from "./add-house-gateway-dialog";
+import { doc } from "firebase/firestore";
 
 
 interface ShoppingListItem {
@@ -45,7 +46,8 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
   const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
   const { data: gateways } = useCollection<Gateway>(db ? "gateways" : null);
-  const { data: houseConfig, isLoading: isLoadingHouseConfig } = useDoc<HouseConfig>(db ? "house_config/main" : null);
+  const houseConfigDocRef = useMemo(() => (db ? doc(db, "house_config", "main") : null), [db]);
+  const { data: houseConfig, isLoading: isLoadingHouseConfig } = useDoc<HouseConfig>(houseConfigDocRef);
 
 
   const [isAddFloorDialogOpen, setIsAddFloorDialogOpen] = useState(false);
@@ -364,5 +366,3 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     </div>
   );
 }
-
-    
