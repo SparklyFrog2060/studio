@@ -7,8 +7,8 @@ import { ThemeProvider } from '@/app/components/theme-provider';
 
 
 export const metadata: Metadata = {
-  title: 'Kreator Urządzeń',
-  description: 'Twórz i zarządzaj swoimi inteligentnymi urządzeniami.',
+  title: 'Smart-Architekt',
+  description: 'Planuj i wizualizuj swój inteligentny dom.',
 };
 
 export default function RootLayout({

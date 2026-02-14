@@ -1,7 +1,7 @@
 
 export const locales = {
   en: {
-    appName: "Device Creator",
+    appName: "Smart-Architekt",
     saveSensor: "Save Sensor",
     addSensor: "Add Sensor",
     editSensor: "Edit Sensor",
@@ -141,7 +141,7 @@ export const locales = {
     localIntegration: "Local Integration",
   },
   pl: {
-    appName: "Kreator Urządzeń",
+    appName: "Smart-Architekt",
     saveSensor: "Zapisz Czujnik",
     addSensor: "Dodaj Czujnik",
     editSensor: "Edytuj Czujnik",
