@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,41 @@ import { useLocale } from "@/app/components/locale-provider";
 import type { Room, RoomDevice, BaseDevice } from "@/app/lib/types";
 import { Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+function DeviceAdder({ devices, onAdd, categoryLabel }: { devices: (BaseDevice & { type: string })[], onAdd: (deviceId: string, quantity: number) => void, categoryLabel: string }) {
+  const { t } = useLocale();
+  const [selectedDevice, setSelectedDevice] = useState('');
+  const [quantity, setQuantity] = useState(1);
+
+  const handleAddClick = () => {
+    if (!selectedDevice || quantity < 1) return;
+    onAdd(selectedDevice, quantity);
+  };
+
+  return (
+    <div className="flex items-center gap-2 pt-2">
+      <Select onValueChange={setSelectedDevice} value={selectedDevice}>
+        <SelectTrigger>
+          <SelectValue placeholder={`${t.add} ${categoryLabel.toLowerCase()}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {devices.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Input
+        type="number"
+        min="1"
+        value={quantity}
+        onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+        className="w-20"
+        aria-label={t.quantityOwned}
+      />
+      <Button type="button" onClick={handleAddClick} disabled={!selectedDevice}>
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 
 interface EditRoomDialogProps {
   isOpen: boolean;
@@ -43,7 +78,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
     defaultValues: { name: "", devices: [] },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "devices",
     keyName: "key"
@@ -59,7 +94,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
   }, [room, form]);
 
   const deviceCategories = useMemo(() => {
-    const categories: Record<string, { label: string, devices: BaseDevice[] }> = {
+    const categories: Record<string, { label: string, devices: (BaseDevice & {type: string})[] }> = {
         'sensor': { label: t.sensors, devices: [] },
         'switch': { label: t.switches, devices: [] },
         'lighting': { label: t.lighting, devices: [] },
@@ -74,14 +109,17 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
     return categories;
   }, [allDevicesMap, t]);
 
-  const handleAddDevice = (deviceId: string) => {
+  const handleAddDevices = (deviceId: string, quantity: number) => {
     const device = allDevicesMap.get(deviceId);
     if (!device) return;
-    append({
-      instanceId: crypto.randomUUID(),
-      deviceId: device.id,
-      customName: device.name,
-    });
+
+    for (let i = 0; i < quantity; i++) {
+        append({
+            instanceId: crypto.randomUUID(),
+            deviceId: device.id,
+            customName: device.name,
+        });
+    }
   };
 
   if (!room) return null;
@@ -140,18 +178,7 @@ export default function EditRoomDialog({ isOpen, onOpenChange, onSubmit, isSavin
                           )
                         })}
                         {devices.length > 0 ? (
-                           <div className="flex items-center gap-2 pt-2">
-                                <Select onValueChange={handleAddDevice}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={`${t.add} ${label.toLowerCase()}`} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {devices.map(d => (
-                                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                           </div>
+                            <DeviceAdder devices={devices} onAdd={handleAddDevices} categoryLabel={label} />
                         ) : (
                             <p className="p-2 text-sm text-muted-foreground">{t.noDevicesOfThisType}</p>
                         )}

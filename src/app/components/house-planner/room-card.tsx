@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -26,6 +25,14 @@ interface MissingGatewayDetails {
   protocol: string;
   devices: { name: string }[];
 }
+
+const typeToColorClass: Record<string, string> = {
+    'sensor': 'text-blue-500',
+    'switch': 'text-green-500',
+    'lighting': 'text-yellow-500',
+    'other-device': 'text-purple-500',
+    'voice-assistant': 'text-sky-500',
+};
 
 const DeviceIcon = ({ type, ...props }: {type: string} & React.ComponentProps<typeof Thermometer>) => {
     switch (type) {
@@ -140,7 +147,7 @@ export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom
                 <ul className="space-y-2">
                     {devicesInRoom.map(item => (
                         <li key={item.instanceId} className="flex items-center gap-2 text-sm">
-                            <DeviceIcon type={item.baseDevice!.type} className="h-4 w-4 text-muted-foreground" />
+                            <DeviceIcon type={item.baseDevice!.type} className={cn("h-4 w-4", typeToColorClass[item.baseDevice!.type] || 'text-muted-foreground')} />
                             <span>{item.customName}</span>
                         </li>
                     ))}
