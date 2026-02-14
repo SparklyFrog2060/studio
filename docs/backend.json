@@ -1,247 +1,70 @@
 {
   "entities": {
-    "Room": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Room",
+    "Sensor": {
+      "title": "Sensor",
       "type": "object",
-      "description": "Represents a virtual room created and customized by a user in the SmartSpace Planner application.",
+      "description": "Represents a user-created sensor with technical specifications.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Room entity."
-        },
         "name": {
           "type": "string",
-          "description": "A user-defined name for the room (e.g., 'Living Room', 'Kitchen')."
+          "description": "The name of the sensor."
         },
-        "description": {
-          "type": "string",
-          "description": "An optional detailed description of the room provided by the user."
-        },
-        "lengthCm": {
+        "score": {
           "type": "number",
-          "description": "The length of the room in centimeters."
+          "description": "The calculated score of the sensor from 1 to 10."
         },
-        "widthCm": {
-          "type": "number",
-          "description": "The width of the room in centimeters."
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of tags associated with the sensor."
         },
-        "heightCm": {
-          "type": "number",
-          "description": "The height of the room in centimeters."
+        "specs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "evaluation": {
+                "type": "string",
+                "enum": ["good", "medium", "bad"]
+              }
+            },
+            "required": ["id", "name", "value", "evaluation"]
+          },
+          "description": "A list of technical specifications for the sensor."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the room was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the room was last updated.",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "The timestamp when the sensor was created."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "lengthCm",
-        "widthCm",
-        "heightCm",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "Product": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Product",
-      "type": "object",
-      "description": "Represents a smart home product available in the application's catalog.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity (catalog item)."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the smart home product (e.g., 'Philips Hue Smart Bulb')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the product's features and capabilities."
-        },
-        "priceUSD": {
-          "type": "number",
-          "description": "The price of a single unit of the product in USD."
-        },
-        "manufacturer": {
-          "type": "string",
-          "description": "The brand or manufacturer of the product."
-        },
-        "modelNumber": {
-          "type": "string",
-          "description": "The specific model number or identifier from the manufacturer."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category of the product (e.g., 'Lighting', 'Thermostat', 'Security Camera')."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to an image of the product for display in the catalog.",
-          "format": "uri"
-        },
-        "dimensionsCm": {
-          "type": "string",
-          "description": "A descriptive string for product dimensions (e.g., '10x5x5 cm') or a reference to a more complex structure if needed for 3D modeling."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "priceUSD",
-        "manufacturer",
-        "modelNumber",
-        "category",
-        "imageUrl"
-      ]
-    },
-    "RoomProductPlacement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RoomProductPlacement",
-      "type": "object",
-      "description": "Represents a specific instance of a product placed within a particular room, including its quantity and position.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for this specific product placement instance within a room."
-        },
-        "roomId": {
-          "type": "string",
-          "description": "Reference to the Room where this product is placed. (Relationship: Room 1:N RoomProductPlacement)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product from the catalog that is being placed. (Relationship: Product 1:N RoomProductPlacement)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The number of units of this product placed at this specific position."
-        },
-        "positionXCm": {
-          "type": "number",
-          "description": "The X-coordinate of the product's placement within the room, in centimeters."
-        },
-        "positionYCm": {
-          "type": "number",
-          "description": "The Y-coordinate of the product's placement within the room, in centimeters."
-        },
-        "positionZCm": {
-          "type": "number",
-          "description": "The Z-coordinate of the product's placement within the room, in centimeters."
-        },
-        "rotationYDegrees": {
-          "type": "number",
-          "description": "The rotation of the product around the Y-axis (yaw) in degrees."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes or comments about this specific product placement."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this placement was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this placement was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "roomId",
-        "productId",
-        "quantity",
-        "positionXCm",
-        "positionYCm",
-        "positionZCm",
-        "rotationYDegrees",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["name", "score", "tags", "specs", "createdAt"]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}/rooms/{roomId}",
-        "definition": {
-          "entityName": "Room",
-          "schema": {
-            "$ref": "#/backend/entities/Room"
-          },
-          "description": "Represents a virtual room created and owned by a specific user. Each document will contain a denormalized 'ownerId' field, mirroring the '{userId}' in the path, to explicitly define ownership and facilitate simple, atomic security rules. This structure enables private 1:N ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this room."
-            },
-            {
-              "name": "roomId",
-              "description": "The unique identifier for the specific room."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/rooms/{roomId}/productPlacements/{placementId}",
-        "definition": {
-          "entityName": "RoomProductPlacement",
-          "schema": {
-            "$ref": "#/backend/entities/RoomProductPlacement"
-          },
-          "description": "Represents an instance of a product placed within a specific room owned by a user. Each document includes denormalized 'ownerId' (from the parent room's owner) and 'roomId' to ensure authorization independence, allowing security rules to validate access without reading parent documents. This supports nested 1:N ownership from user to room to product placement.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the parent room."
-            },
-            {
-              "name": "roomId",
-              "description": "The unique identifier of the parent room where this product is placed."
-            },
-            {
-              "name": "placementId",
-              "description": "The unique identifier for this specific product placement instance."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Represents a global catalog of smart home products. This collection is publicly readable by all users, providing product details for placement in rooms.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for a product in the catalog."
-            }
-          ]
-        }
+    "collections": {
+      "sensors": {
+        "schema": {
+          "$ref": "#/entities/Sensor"
+        },
+        "description": "Collection to store all user-created sensors."
       }
-    ],
-    "reasoning": "The SmartSpace Planner application's data structure is designed with a strong emphasis on authorization independence, clear ownership, and scalable security rules. User-specific data, such as Room and RoomProductPlacement entities, are organized under a /users/{userId} root, leveraging Firestore's hierarchical nature for efficient and secure access control. The global Product catalog is maintained in a top-level /products collection, allowing for public read access.\n\nAuthorization Independence:\nTo achieve Authorization Independence (Mandate A) and avoid costly and complex get() calls in security rules, the ownerId for user-owned entities is consistently denormalized. For Room entities, each document under /users/{userId}/rooms/{roomId} will include an ownerId field that mirrors the {userId} in its path. This explicit field simplifies rule writing (e.g., allow read: if request.auth.uid == resource.data.ownerId;).\n\nCrucially, for RoomProductPlacement entities, which are subcollections of Room, the ownerId (derived from the parent Room's owner, i.e., the user ID) is denormalized and stored directly within each RoomProductPlacement document. This means that a security rule checking access for a RoomProductPlacement document can directly inspect resource.data.ownerId without needing to perform a get() operation on the parent Room document. This is vital for maintaining atomic operations and ensuring robust, debuggable rules.\n\nQAPs (Rules are not Filters):\nThe structural segregation (Mandate B) and consistent access modeling (Mandate C) directly support the Query Access Patterns (QAPs) principle, where security rules should not act as filters on large, unindexed datasets. Instead, the data structure inherently limits query scope:\n\n*   User's Rooms (/users/{userId}/rooms): A user can only query and list their own rooms because the path itself contains their userId. Security rules will enforce that request.auth.uid matches the {userId} wildcard, making list operations implicitly secure and performant without needing additional where clauses for authorization.\n*   Product Placements (/users/{userId}/rooms/{roomId}/productPlacements): Similarly, listing product placements for a specific room is secured by the parent path structure. Rules will ensure request.auth.uid matches {userId}, and that the placement belongs to the specified room. The denormalized ownerId in RoomProductPlacement further reinforces this, allowing direct checks within create/update/delete operations.\n*   Product Catalog (/products): This collection is designed for public read access. Any authenticated or unauthenticated user can list all products, which is a straightforward QAP with simple allow read: true; rules (possibly with a condition for authenticated users only if required, but the prompt implies a public catalog)."
+    }
   }
 }

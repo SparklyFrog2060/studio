@@ -21,7 +21,7 @@ import {
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
-  const { data: sensors, loading } = useCollection("sensors", { sort: { field: "createdAt", direction: "desc" }});
+  const { data: sensors, isLoading } = useCollection(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -100,7 +100,7 @@ export default function SensorCreatorApp() {
                 <AddSensorForm onAddSensor={handleAddSensor} isSaving={isSaving} />
             </div>
             <div className="lg:col-span-2">
-                {loading ? (
+                {isLoading ? (
                     <p>Ładowanie czujników...</p>
                 ) : (
                     <SensorList sensors={sensors as Sensor[]} onDeleteSensor={handleDeleteSensor} />
