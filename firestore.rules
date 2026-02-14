@@ -1,9 +1,171 @@
+/**
+ * # Firestore Security Rules: SmartSpace Planner
+ *
+ * ## Core Philosophy
+ * This ruleset enforces a strict user-ownership model. All user-generated
+ * data (like rooms and product placements) is stored in a private data tree
+ * unique to each user. This ensures that users can only ever access and
+ * modify their own information. A global product catalog exists separately
+ * and is publicly readable by anyone.
+ *
+ * ## Data Structure
+ * The data is organized into two main branches:
+ * 1.  `/users/{userId}/...`: A user-specific tree containing all their private
+ *     data.
+ *     - `/users/{userId}/rooms/{roomId}`: Contains room documents owned by the user.
+ *     - `/users/{userId}/rooms/{roomId}/productPlacements/{placementId}`: Contains
+ *       product placements nested within a specific room.
+ * 2.  `/products/{productId}`: A top-level collection for the global product
+ *     catalog, which is read-only for clients.
+ *
+ * ## Key Security Decisions
+ * -   **Strict Segregation**: Users are completely isolated within their own
+ *     `/users/{userId}` path. Rules prevent any cross-user data access.
+ * -   **No User Listing**: It is impossible for a client to list all users
+ *     of the application.
+ * -   **Public Catalog**: The `/products` collection is public for reads to allow
+ *     any user (signed-in or anonymous) to browse the catalog. All writes to this
+ *     collection are disabled from the client-side.
+ * -   **Authorization over Validation**: In this prototyping stage, rules focus
+ *     on *who* can access data, not the specific *shape* of the data. Only
+ *     fields critical for linking data (e.g., ownerId, roomId) are validated.
+ *
+ * ## Denormalization for Authorization
+ * To create simple and highly performant rules, ownership and relational data
+ * is denormalized onto documents. For example, every `RoomProductPlacement`
+ * document is expected to contain an `ownerId` field. This allows security rules
+ * to verify ownership with a direct field check, completely avoiding slow and
+ * costly `get()` calls to parent documents. This makes the rules more secure
+ * and efficient.
+ *
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /sensors/{sensorId} {
-      allow read, write: if true;
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the document being operated on already exists.
+     * Essential for securing update and delete operations.
+     */
+    function isExistingDocument() {
+      return resource != null;
+    }
+
+    /**
+     * A convenience function that combines ownership and existence checks.
+     * Used for all update and delete operations on user-owned data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDocument();
+    }
+
+    /**
+     * Validates that the incoming Room data has a correct ownerId link.
+     * On create, the new ownerId must match the user's auth UID.
+     */
+    function hasValidRoomOwnerLink(userId) {
+      return request.resource.data.ownerId == userId;
+    }
+
+    /**
+     * Validates that the ownerId link on a Room is immutable during updates.
+     */
+    function isRoomOwnerLinkImmutable() {
+      return request.resource.data.ownerId == resource.data.ownerId;
+    }
+
+    /**
+     * Validates that an incoming Product Placement has correct relational links.
+     * The ownerId and roomId must match the path parameters.
+     */
+    function hasValidPlacementLinks(userId, roomId) {
+      let incomingData = request.resource.data;
+      return incomingData.ownerId == userId && incomingData.roomId == roomId;
+    }
+
+    /**
+     * Validates that the relational links (ownerId, roomId) on a Product
+     * Placement are immutable during updates.
+     */
+    function arePlacementLinksImmutable() {
+      let existingData = resource.data;
+      let newData = request.resource.data;
+      return newData.ownerId == existingData.ownerId && newData.roomId == existingData.roomId;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to the public product catalog.
+     *   Anyone can read product data, but no one can write to it from the client.
+     * @path /products/{productId}
+     * @allow (get) Any user, signed in or not, retrieving a product.
+     * @deny (create) Any user attempting to add a new product.
+     * @principle Public read with locked-down writes for catalog-style data.
+     */
+    match /products/{productId} {
+      allow get: if true;
+      allow list: if true;
+
+      // CRITICAL: Cannot implement owner-only writes. The 'Product' entity is missing an 'ownerId' or 'authorId' field.
+      // Writes are disabled. This collection should be managed via the Firebase Console or a trusted backend server.
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Secures a user's private Room documents.
+     *   Only the user who owns the room can read, create, update, or delete it.
+     * @path /users/{userId}/rooms/{roomId}
+     * @allow (create) An authenticated user creating a room under their own userId path.
+     * @deny (get) A user trying to read a room from another user's path.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/rooms/{roomId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidRoomOwnerLink(userId);
+      allow update: if isExistingOwner(userId) && isRoomOwnerLinkImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secures product placements within a user's private room.
+     *   Access is granted only to the owner of the parent room.
+     * @path /users/{userId}/rooms/{roomId}/productPlacements/{placementId}
+     * @allow (get) The room owner reading a product placement within their room.
+     * @deny (list) Another user trying to list placements in someone else's room.
+     * @principle Enforces inherited ownership from the parent document path and validates relational integrity.
+     */
+    match /users/{userId}/rooms/{roomId}/productPlacements/{placementId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidPlacementLinks(userId, roomId);
+      allow update: if isExistingOwner(userId) && arePlacementLinksImmutable();
+      allow delete: if isExistingOwner(userId);
     }
   }
 }

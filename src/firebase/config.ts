@@ -1,12 +1,8 @@
-// Firebase configuration will be populated here by the system.
-// IMPORTANT: Do not directly edit this file.
-import { FirebaseOptions } from 'firebase/app';
-
-export const firebaseConfig: FirebaseOptions = {
-  apiKey: "placeholder",
-  authDomain: "placeholder",
-  projectId: "placeholder",
-  storageBucket: "placeholder",
-  messagingSenderId: "placeholder",
-  appId: "placeholder"
+export const firebaseConfig = {
+  "projectId": "studio-5756263585-a1419",
+  "appId": "1:659575247472:web:7bed858ce9a55f2e1edab5",
+  "apiKey": "AIzaSyD8IwTEiYdB1RW1pRWkOddugnwtpVXU-pU",
+  "authDomain": "studio-5756263585-a1419.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "659575247472"
 };
