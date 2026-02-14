@@ -29,6 +29,7 @@ const formSchema = z.object({
   link: z.string().url("Niepoprawny URL.").optional().or(z.literal('')),
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
+  connectivity: z.enum(["matter", "zigbee", "tuya", "other_app", "bluetooth"]),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
 });
@@ -55,6 +56,7 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
       link: "",
       price: 0,
       priceEvaluation: "medium",
+      connectivity: "zigbee",
       tags: [],
       specs: [],
     },
@@ -67,6 +69,7 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
   
   const specs = form.watch("specs");
   const priceEvaluation = form.watch("priceEvaluation");
+  const connectivity = form.watch("connectivity");
 
   useEffect(() => {
     const totalSpecPoints = specs.reduce((sum, spec) => {
@@ -80,12 +83,17 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
     if (priceEvaluation === "good") pricePoints = 3;
     if (priceEvaluation === "medium") pricePoints = 2;
     if (priceEvaluation === "bad") pricePoints = 1;
+
+    let connectivityPoints = 0;
+    if (connectivity === "matter" || connectivity === "zigbee") connectivityPoints = 3;
+    else if (connectivity === "tuya") connectivityPoints = 2;
+    else if (connectivity === "other_app" || connectivity === "bluetooth") connectivityPoints = 1;
     
-    const totalPoints = totalSpecPoints + pricePoints;
-    const maxPoints = specs.length * 3 + 3;
+    const totalPoints = totalSpecPoints + pricePoints + connectivityPoints;
+    const maxPoints = specs.length * 3 + 3 + 3;
     const calculatedScore = maxPoints > 0 ? (totalPoints / maxPoints) * 10 : 0;
     setScore(Math.round(calculatedScore * 10) / 10);
-  }, [specs, priceEvaluation]);
+  }, [specs, priceEvaluation, connectivity]);
 
 
   const handleAddTag = (tag: string) => {
@@ -208,6 +216,45 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
                 />
               </div>
             </div>
+            
+            <FormField
+              control={form.control}
+              name="connectivity"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>{t.connectivity}</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-wrap gap-x-4 gap-y-2"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="matter" /></FormControl>
+                        <FormLabel className="font-normal">Matter</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="zigbee" /></FormControl>
+                        <FormLabel className="font-normal">Zigbee</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="tuya" /></FormControl>
+                        <FormLabel className="font-normal">Tuya</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="other_app" /></FormControl>
+                        <FormLabel className="font-normal">Inna Aplikacja</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="bluetooth" /></FormControl>
+                        <FormLabel className="font-normal">Bluetooth</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormItem>
               <FormLabel>{t.tags}</FormLabel>

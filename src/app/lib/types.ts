@@ -7,6 +7,8 @@ export interface Specification {
   evaluation: 'good' | 'medium' | 'bad';
 }
 
+export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth';
+
 export interface Sensor {
   id: string; // Document ID from firestore
   name: string;
@@ -14,6 +16,7 @@ export interface Sensor {
   link?: string;
   price: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
+  connectivity: Connectivity;
   score: number;
   tags: string[];
   specs: Specification[];

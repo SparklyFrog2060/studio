@@ -27,6 +27,11 @@
           "enum": ["good", "medium", "bad"],
           "description": "The evaluation of the sensor's price."
         },
+        "connectivity": {
+          "type": "string",
+          "enum": ["matter", "zigbee", "tuya", "other_app", "bluetooth"],
+          "description": "The connectivity protocol of the sensor."
+        },
         "score": {
           "type": "number",
           "description": "The calculated score of the sensor from 1 to 10."
@@ -67,7 +72,7 @@
           "description": "The timestamp when the sensor was created."
         }
       },
-      "required": ["name", "brand", "price", "priceEvaluation", "score", "tags", "specs", "createdAt"]
+      "required": ["name", "brand", "price", "priceEvaluation", "connectivity", "score", "tags", "specs", "createdAt"]
     }
   },
   "auth": {

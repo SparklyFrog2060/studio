@@ -13,7 +13,7 @@ import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon } 
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocale } from "@/app/components/locale-provider";
-import type { Sensor } from "@/app/lib/types";
+import type { Sensor, Connectivity } from "@/app/lib/types";
 
 interface SensorCardProps {
   sensor: Sensor;
@@ -33,6 +33,24 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
         return <XCircle className="h-5 w-5 text-red-500" />;
     }
   };
+  
+  const getConnectivityInfo = (connectivity: Connectivity) => {
+    switch (connectivity) {
+      case 'matter':
+        return { name: 'Matter', evaluation: 'good' as const };
+      case 'zigbee':
+        return { name: 'Zigbee', evaluation: 'good' as const };
+      case 'tuya':
+        return { name: 'Tuya', evaluation: 'medium' as const };
+      case 'other_app':
+        return { name: 'Inna Aplikacja', evaluation: 'bad' as const };
+      case 'bluetooth':
+        return { name: 'Bluetooth', evaluation: 'bad' as const };
+      default:
+        return { name: '', evaluation: 'medium' as const };
+    }
+  };
+
 
   return (
     <Card className="flex flex-col h-full">
@@ -84,6 +102,15 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
                         </a>
                     </Button>
                 )}
+            </div>
+          )}
+          {sensor.connectivity && (
+            <div className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
+              <div className="flex items-center gap-2">
+                {getEvaluationIcon(getConnectivityInfo(sensor.connectivity).evaluation)}
+                <span>{t.connectivity}:</span>
+                <span className="font-semibold">{getConnectivityInfo(sensor.connectivity).name}</span>
+              </div>
             </div>
           )}
           {sensor.specs.map(spec => (
