@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { Floor, Room, Sensor, Switch, VoiceAssistant } from "@/app/lib/types";
@@ -9,7 +9,7 @@ import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Wallet } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -30,6 +30,29 @@ export default function HousePlanner() {
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const totalHousePrice = useMemo(() => {
+    if (!rooms || !sensors || !switches || !voiceAssistants) return 0;
+
+    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds));
+    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds));
+    const allAssignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds));
+
+    const sensorTotal = sensors
+        .filter(s => allAssignedSensorIds.has(s.id))
+        .reduce((sum, s) => sum + (s.price || 0), 0);
+
+    const switchTotal = switches
+        .filter(s => allAssignedSwitchIds.has(s.id))
+        .reduce((sum, s) => sum + (s.price || 0), 0);
+    
+    const assistantTotal = voiceAssistants
+        .filter(v => allAssignedAssistantIds.has(v.id))
+        .reduce((sum, v) => sum + (v.price || 0), 0);
+
+    return sensorTotal + switchTotal + assistantTotal;
+  }, [rooms, sensors, switches, voiceAssistants]);
+
 
   const handleAddFloor = async (data: Omit<Floor, "id" | "createdAt">) => {
     if (!db) return;
@@ -101,15 +124,24 @@ export default function HousePlanner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-2">
-        <Button onClick={() => setIsAddFloorDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {t.addFloor}
-        </Button>
-        <Button onClick={() => setIsAddRoomDialogOpen(true)} disabled={!floors || floors.length === 0}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {t.addRoom}
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3 text-xl font-bold">
+            <Wallet className="h-8 w-8 text-primary" />
+            <div>
+                <span className="text-muted-foreground text-sm font-medium">Suma:</span>
+                <div className="text-2xl text-primary">{totalHousePrice.toFixed(2)} zł</div>
+            </div>
+        </div>
+        <div className="flex justify-end gap-2">
+            <Button onClick={() => setIsAddFloorDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {t.addFloor}
+            </Button>
+            <Button onClick={() => setIsAddRoomDialogOpen(true)} disabled={!floors || floors.length === 0}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {t.addRoom}
+            </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -121,6 +153,9 @@ export default function HousePlanner() {
               key={floor.id}
               floor={floor}
               rooms={rooms?.filter(room => room.floorId === floor.id) || []}
+              sensors={sensors || []}
+              switches={switches || []}
+              voiceAssistants={voiceAssistants || []}
               onEditRoom={setEditingRoom}
               onDeleteFloor={handleDeleteFloor}
               onDeleteRoom={handleDeleteRoom}

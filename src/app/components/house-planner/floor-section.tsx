@@ -11,12 +11,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface FloorSectionProps {
   floor: Floor;
   rooms: Room[];
+  sensors: Sensor[];
+  switches: Switch[];
+  voiceAssistants: VoiceAssistant[];
   onEditRoom: (room: Room) => void;
   onDeleteFloor: (floorId: string) => void;
   onDeleteRoom: (roomId: string) => void;
 }
 
-export default function FloorSection({ floor, rooms, onEditRoom, onDeleteFloor, onDeleteRoom }: FloorSectionProps) {
+export default function FloorSection({ floor, rooms, sensors, switches, voiceAssistants, onEditRoom, onDeleteFloor, onDeleteRoom }: FloorSectionProps) {
   const { t } = useLocale();
 
   return (
@@ -44,7 +47,15 @@ export default function FloorSection({ floor, rooms, onEditRoom, onDeleteFloor, 
       {rooms.length > 0 ? (
         <div className="grid gap-4 md:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rooms.map(room => (
-            <RoomCard key={room.id} room={room} onEditRoom={onEditRoom} onDeleteRoom={onDeleteRoom} />
+            <RoomCard 
+              key={room.id} 
+              room={room} 
+              sensors={sensors} 
+              switches={switches} 
+              voiceAssistants={voiceAssistants}
+              onEditRoom={onEditRoom} 
+              onDeleteRoom={onDeleteRoom} 
+            />
           ))}
         </div>
       ) : (
