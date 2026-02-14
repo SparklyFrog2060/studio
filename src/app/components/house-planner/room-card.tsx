@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -23,7 +24,7 @@ interface RoomCardProps {
   houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
-const PROTOCOLS_NEEDING_GATEWAY: Connectivity[] = ['zigbee', 'tuya'];
+const PROTOCOLS_NEEDING_GATEWAY: Connectivity[] = ['zigbee', 'tuya', 'matter'];
 
 export default function RoomCard({ room, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteRoom, houseGatewayProtocols }: RoomCardProps) {
   const { t } = useLocale();
