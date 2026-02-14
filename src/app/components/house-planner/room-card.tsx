@@ -24,7 +24,7 @@ interface RoomCardProps {
   houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
-const PROTOCOLS_NEEDING_GATEWAY: Connectivity[] = ['zigbee', 'tuya', 'matter'];
+const PROTOCOLS_NEEDING_GATEWAY: Connectivity[] = ['zigbee', 'matter'];
 
 interface MissingGatewayDetails {
   protocol: string;
@@ -255,3 +255,6 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
   );
 }
 
+
+
+    
