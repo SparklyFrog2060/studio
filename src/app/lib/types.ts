@@ -17,6 +17,7 @@ export interface Sensor {
   price: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
+  homeAssistantCompatibility: number;
   score: number;
   tags: string[];
   specs: Specification[];
@@ -32,6 +33,7 @@ export interface Switch {
   price: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
+  homeAssistantCompatibility: number;
   score: number;
   tags: string[];
   specs: Specification[];
@@ -45,6 +47,7 @@ export interface VoiceAssistant {
   link?: string;
   price: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
+  homeAssistantCompatibility: number;
   score: number;
   tags: string[];
   specs: Specification[];

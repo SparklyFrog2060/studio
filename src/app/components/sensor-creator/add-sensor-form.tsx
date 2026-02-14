@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, PlusCircle, Trash2, Gauge } from "lucide-react";
 import { useLocale } from "@/app/components/locale-provider";
 import type { Sensor } from "@/app/lib/types";
+import { Slider } from "@/components/ui/slider";
 
 const specSchema = z.object({
   id: z.string(),
@@ -30,6 +31,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
   connectivity: z.enum(["matter", "zigbee", "tuya", "other_app", "bluetooth"]),
+  homeAssistantCompatibility: z.coerce.number().min(1).max(5),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
 });
@@ -59,6 +61,7 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
       price: 0,
       priceEvaluation: "medium",
       connectivity: "zigbee",
+      homeAssistantCompatibility: 5,
       tags: [],
       specs: [],
     },
@@ -79,6 +82,7 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
   const specs = form.watch("specs");
   const priceEvaluation = form.watch("priceEvaluation");
   const connectivity = form.watch("connectivity");
+  const haCompatibility = form.watch("homeAssistantCompatibility");
 
   useEffect(() => {
     const totalSpecPoints = specs.reduce((sum, spec) => {
@@ -97,12 +101,19 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
     if (connectivity === "matter" || connectivity === "zigbee") connectivityPoints = 3;
     else if (connectivity === "tuya") connectivityPoints = 2;
     else if (connectivity === "other_app" || connectivity === "bluetooth") connectivityPoints = 1;
+
+    let compatibilityPoints = 0;
+    if (haCompatibility >= 5) compatibilityPoints = 3;
+    else if (haCompatibility === 4) compatibilityPoints = 2.5;
+    else if (haCompatibility === 3) compatibilityPoints = 2;
+    else if (haCompatibility === 2) compatibilityPoints = 1;
+    else if (haCompatibility === 1) compatibilityPoints = 0;
     
-    const totalPoints = totalSpecPoints + pricePoints + connectivityPoints;
-    const maxPoints = specs.length * 3 + 3 + 3;
+    const totalPoints = totalSpecPoints + pricePoints + connectivityPoints + compatibilityPoints;
+    const maxPoints = specs.length * 3 + 3 + 3 + 3;
     const calculatedScore = maxPoints > 0 ? (totalPoints / maxPoints) * 10 : 0;
     setScore(Math.round(calculatedScore * 10) / 10);
-  }, [specs, priceEvaluation, connectivity]);
+  }, [specs, priceEvaluation, connectivity, haCompatibility]);
 
 
   const handleAddTag = (tag: string) => {
@@ -261,6 +272,26 @@ export default function AddSensorForm({ onSubmit, isSaving, initialData }: AddSe
                         <FormLabel className="font-normal">Bluetooth</FormLabel>
                       </FormItem>
                     </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="homeAssistantCompatibility"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.homeAssistantCompatibility} - {field.value}</FormLabel>
+                  <FormControl>
+                    <Slider
+                      min={1}
+                      max={5}
+                      step={1}
+                      value={[field.value]}
+                      onValueChange={(value) => field.onChange(value[0])}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

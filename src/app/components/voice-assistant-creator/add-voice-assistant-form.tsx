@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, PlusCircle, Trash2, Gauge } from "lucide-react";
 import { useLocale } from "@/app/components/locale-provider";
 import type { VoiceAssistant } from "@/app/lib/types";
+import { Slider } from "@/components/ui/slider";
 
 const specSchema = z.object({
   id: z.string(),
@@ -29,6 +30,7 @@ const formSchema = z.object({
   link: z.string().url("Niepoprawny URL.").optional().or(z.literal('')),
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
+  homeAssistantCompatibility: z.coerce.number().min(1).max(5),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
 });
@@ -57,6 +59,7 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
       link: "",
       price: 0,
       priceEvaluation: "medium",
+      homeAssistantCompatibility: 5,
       tags: [],
       specs: [],
     },
@@ -76,6 +79,7 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
   
   const specs = form.watch("specs");
   const priceEvaluation = form.watch("priceEvaluation");
+  const haCompatibility = form.watch("homeAssistantCompatibility");
 
   useEffect(() => {
     const totalSpecPoints = specs.reduce((sum, spec) => {
@@ -90,11 +94,18 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
     if (priceEvaluation === "medium") pricePoints = 2;
     if (priceEvaluation === "bad") pricePoints = 1;
 
-    const totalPoints = totalSpecPoints + pricePoints;
-    const maxPoints = specs.length * 3 + 3;
+    let compatibilityPoints = 0;
+    if (haCompatibility >= 5) compatibilityPoints = 3;
+    else if (haCompatibility === 4) compatibilityPoints = 2.5;
+    else if (haCompatibility === 3) compatibilityPoints = 2;
+    else if (haCompatibility === 2) compatibilityPoints = 1;
+    else if (haCompatibility === 1) compatibilityPoints = 0;
+
+    const totalPoints = totalSpecPoints + pricePoints + compatibilityPoints;
+    const maxPoints = specs.length * 3 + 3 + 3;
     const calculatedScore = maxPoints > 0 ? (totalPoints / maxPoints) * 10 : 0;
     setScore(Math.round(calculatedScore * 10) / 10);
-  }, [specs, priceEvaluation]);
+  }, [specs, priceEvaluation, haCompatibility]);
 
 
   const handleAddTag = (tag: string) => {
@@ -220,6 +231,26 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
               </div>
             </div>
             
+            <FormField
+              control={form.control}
+              name="homeAssistantCompatibility"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.homeAssistantCompatibility} - {field.value}</FormLabel>
+                  <FormControl>
+                    <Slider
+                      min={1}
+                      max={5}
+                      step={1}
+                      value={[field.value]}
+                      onValueChange={(value) => field.onChange(value[0])}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormItem>
               <FormLabel>{t.tags}</FormLabel>
               <div className="flex items-center gap-2">

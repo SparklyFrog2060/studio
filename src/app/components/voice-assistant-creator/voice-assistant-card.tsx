@@ -9,7 +9,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon, Pencil } from "lucide-react";
+import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon, Pencil, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocale } from "@/app/components/locale-provider";
@@ -33,6 +33,16 @@ export default function VoiceAssistantCard({ assistant, onDelete, onEdit }: Voic
       case 'bad':
         return <XCircle className="h-5 w-5 text-red-500" />;
     }
+  };
+
+  const getHAIcon = (score: number) => {
+    if (score >= 5) {
+        return <ShieldCheck className="h-5 w-5 text-green-500" />;
+    }
+    if (score >= 3) {
+        return <ShieldAlert className="h-5 w-5 text-yellow-500" />;
+    }
+    return <ShieldX className="h-5 w-5 text-red-500" />;
   };
 
   return (
@@ -93,6 +103,13 @@ export default function VoiceAssistantCard({ assistant, onDelete, onEdit }: Voic
                 )}
             </div>
           )}
+          <div className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
+              <div className="flex items-center gap-2">
+                {getHAIcon(assistant.homeAssistantCompatibility)}
+                <span>{t.homeAssistantCompatibility}:</span>
+                <span className="font-semibold">{assistant.homeAssistantCompatibility}/5</span>
+              </div>
+          </div>
           {assistant.specs.map(spec => (
             <div key={spec.id} className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
                 <div className="flex items-center gap-2">

@@ -42,6 +42,10 @@
           ],
           "description": "The connectivity protocol of the sensor."
         },
+        "homeAssistantCompatibility": {
+          "type": "number",
+          "description": "Compatibility score with Home Assistant from 1 to 5."
+        },
         "score": {
           "type": "number",
           "description": "The calculated score of the sensor from 1 to 10."
@@ -97,6 +101,7 @@
         "price",
         "priceEvaluation",
         "connectivity",
+        "homeAssistantCompatibility",
         "score",
         "tags",
         "specs",
@@ -152,6 +157,10 @@
             "bluetooth"
           ],
           "description": "The connectivity protocol of the switch."
+        },
+        "homeAssistantCompatibility": {
+          "type": "number",
+          "description": "Compatibility score with Home Assistant from 1 to 5."
         },
         "score": {
           "type": "number",
@@ -209,6 +218,7 @@
         "price",
         "priceEvaluation",
         "connectivity",
+        "homeAssistantCompatibility",
         "score",
         "tags",
         "specs",
@@ -245,6 +255,10 @@
             "bad"
           ],
           "description": "The evaluation of the voice assistant's price."
+        },
+        "homeAssistantCompatibility": {
+          "type": "number",
+          "description": "Compatibility score with Home Assistant from 1 to 5."
         },
         "score": {
           "type": "number",
@@ -300,6 +314,7 @@
         "brand",
         "price",
         "priceEvaluation",
+        "homeAssistantCompatibility",
         "score",
         "tags",
         "specs",
