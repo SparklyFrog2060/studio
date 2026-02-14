@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -9,13 +8,14 @@ import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Wallet, Receipt } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
 import FloorSection from "./floor-section";
 import ShoppingListDialog from "./shopping-list-dialog";
-import ActiveGateways from "./active-gateways";
+import type { View } from "@/app/sensor-creator-app";
+
 
 interface ShoppingListItem {
   name: string;
@@ -24,7 +24,11 @@ interface ShoppingListItem {
   link?: string;
 }
 
-export default function HousePlanner() {
+interface HousePlannerProps {
+    setActiveView: (view: View) => void;
+}
+
+export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { t } = useLocale();
   const db = useFirestore();
   const { toast } = useToast();
@@ -195,10 +199,12 @@ export default function HousePlanner() {
             <PlusCircle className="mr-2 h-4 w-4" />
             {t.addRoom}
             </Button>
+            <Button onClick={() => setActiveView('gateways')}>
+                <Router className="mr-2 h-4 w-4" />
+                {t.addGateway}
+            </Button>
         </div>
       </div>
-
-      <ActiveGateways gateways={gateways || []} voiceAssistants={voiceAssistants || []} />
 
       {isLoading ? (
         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
