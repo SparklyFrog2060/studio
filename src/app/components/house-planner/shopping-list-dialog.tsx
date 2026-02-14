@@ -12,11 +12,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocale } from "@/app/components/locale-provider";
+import { Link as LinkIcon } from "lucide-react";
 
 interface ShoppingListItem {
   name: string;
   price: number;
   type: 'Sensor' | 'Switch' | 'VoiceAssistant';
+  link?: string;
 }
 
 interface ShoppingListDialogProps {
@@ -32,8 +34,10 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
 
   useEffect(() => {
     // Set date only on client-side after mount to avoid hydration mismatch
-    setCurrentDate(new Date().toLocaleDateString('pl-PL'));
-  }, []);
+    if (isOpen) {
+      setCurrentDate(new Date().toLocaleDateString('pl-PL'));
+    }
+  }, [isOpen]);
 
   const sensors = items.filter(item => item.type === 'Sensor');
   const switches = items.filter(item => item.type === 'Switch');
@@ -46,7 +50,14 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
         <h4 className="font-semibold text-lg my-3 text-muted-foreground">{title}</h4>
         {sectionItems.map((item, index) => (
           <div key={`${title}-${index}`} className="flex justify-between items-center text-sm py-2 border-b border-dashed">
-            <span>{item.name}</span>
+            <div className="flex items-center gap-2">
+              <span>{item.name}</span>
+              {item.link && (
+                <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label={`Link do ${item.name}`}>
+                  <LinkIcon className="h-3 w-3 text-muted-foreground hover:text-primary transition-colors" />
+                </a>
+              )}
+            </div>
             <span>{item.price.toFixed(2)} zł</span>
           </div>
         ))}

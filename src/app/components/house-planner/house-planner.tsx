@@ -20,6 +20,7 @@ interface ShoppingListItem {
   name: string;
   price: number;
   type: 'Sensor' | 'Switch' | 'VoiceAssistant';
+  link?: string;
 }
 
 export default function HousePlanner() {
@@ -48,15 +49,15 @@ export default function HousePlanner() {
 
     const assignedSensors = sensors
         .filter(s => allAssignedSensorIds.has(s.id))
-        .map(s => ({ name: s.name, price: s.price || 0, type: 'Sensor' as const }));
+        .map(s => ({ name: s.name, price: s.price || 0, type: 'Sensor' as const, link: s.link }));
 
     const assignedSwitches = switches
         .filter(s => allAssignedSwitchIds.has(s.id))
-        .map(s => ({ name: s.name, price: s.price || 0, type: 'Switch' as const }));
+        .map(s => ({ name: s.name, price: s.price || 0, type: 'Switch' as const, link: s.link }));
     
     const assignedAssistants = voiceAssistants
         .filter(v => allAssignedAssistantIds.has(v.id))
-        .map(v => ({ name: v.name, price: v.price || 0, type: 'VoiceAssistant' as const }));
+        .map(v => ({ name: v.name, price: v.price || 0, type: 'VoiceAssistant' as const, link: v.link }));
 
     return [...assignedSensors, ...assignedSwitches, ...assignedAssistants];
   }, [rooms, sensors, switches, voiceAssistants]);
