@@ -9,6 +9,24 @@
           "type": "string",
           "description": "The name of the sensor."
         },
+        "brand": {
+          "type": "string",
+          "description": "The brand of the sensor."
+        },
+        "link": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL link to the sensor's product page."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the sensor."
+        },
+        "priceEvaluation": {
+          "type": "string",
+          "enum": ["good", "medium", "bad"],
+          "description": "The evaluation of the sensor's price."
+        },
         "score": {
           "type": "number",
           "description": "The calculated score of the sensor from 1 to 10."
@@ -49,7 +67,7 @@
           "description": "The timestamp when the sensor was created."
         }
       },
-      "required": ["name", "score", "tags", "specs", "createdAt"]
+      "required": ["name", "brand", "price", "priceEvaluation", "score", "tags", "specs", "createdAt"]
     }
   },
   "auth": {

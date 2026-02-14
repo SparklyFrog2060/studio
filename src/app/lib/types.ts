@@ -10,6 +10,10 @@ export interface Specification {
 export interface Sensor {
   id: string; // Document ID from firestore
   name: string;
+  brand: string;
+  link?: string;
+  price: number;
+  priceEvaluation: 'good' | 'medium' | 'bad';
   score: number;
   tags: string[];
   specs: Specification[];

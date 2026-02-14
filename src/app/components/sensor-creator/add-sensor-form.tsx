@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { X, PlusCircle, Trash2, Gauge } from "lucide-react";
 import { useLocale } from "@/app/components/locale-provider";
-import type { Specification } from "@/app/lib/types";
+import type { Sensor } from "@/app/lib/types";
 
 const specSchema = z.object({
   id: z.string(),
@@ -25,6 +25,10 @@ const specSchema = z.object({
 
 const formSchema = z.object({
   name: z.string().min(2, "Nazwa musi mieć co najmniej 2 znaki."),
+  brand: z.string().min(1, "Marka jest wymagana."),
+  link: z.string().url("Niepoprawny URL.").optional().or(z.literal('')),
+  price: z.coerce.number().min(0, "Cena nie może być ujemna."),
+  priceEvaluation: z.enum(["good", "medium", "bad"]),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
 });
@@ -32,7 +36,7 @@ const formSchema = z.object({
 type SensorFormData = z.infer<typeof formSchema>;
 
 interface AddSensorFormProps {
-  onAddSensor: (data: SensorFormData & { score: number }) => void;
+  onAddSensor: (data: Omit<Sensor, "id" | "createdAt">) => void;
   isSaving: boolean;
 }
 
@@ -47,6 +51,10 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      brand: "",
+      link: "",
+      price: 0,
+      priceEvaluation: "medium",
       tags: [],
       specs: [],
     },
@@ -58,22 +66,26 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
   });
   
   const specs = form.watch("specs");
+  const priceEvaluation = form.watch("priceEvaluation");
 
   useEffect(() => {
-    if (specs.length === 0) {
-      setScore(0);
-      return;
-    }
-    const totalPoints = specs.reduce((sum, spec) => {
+    const totalSpecPoints = specs.reduce((sum, spec) => {
       if (spec.evaluation === "good") return sum + 3;
       if (spec.evaluation === "medium") return sum + 2;
       if (spec.evaluation === "bad") return sum + 1;
       return sum;
     }, 0);
-    const maxPoints = specs.length * 3;
+
+    let pricePoints = 0;
+    if (priceEvaluation === "good") pricePoints = 3;
+    if (priceEvaluation === "medium") pricePoints = 2;
+    if (priceEvaluation === "bad") pricePoints = 1;
+    
+    const totalPoints = totalSpecPoints + pricePoints;
+    const maxPoints = specs.length * 3 + 3;
     const calculatedScore = maxPoints > 0 ? (totalPoints / maxPoints) * 10 : 0;
-    setScore(Math.round(calculatedScore * 10) / 10); // round to 1 decimal
-  }, [specs]);
+    setScore(Math.round(calculatedScore * 10) / 10);
+  }, [specs, priceEvaluation]);
 
 
   const handleAddTag = (tag: string) => {
@@ -104,19 +116,98 @@ export default function AddSensorForm({ onAddSensor, isSaving }: AddSensorFormPr
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.sensorName}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t.sensorNamePlaceholder} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.brand}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t.brandPlaceholder} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
-              name="name"
+              name="link"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.sensorName}</FormLabel>
+                  <FormLabel>{t.link}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t.sensorNamePlaceholder} {...field} />
+                    <Input placeholder={t.linkPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+             <div>
+              <Label>{t.price}</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="number" placeholder={t.pricePlaceholder} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="priceEvaluation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4 items-center h-full"
+                        >
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="good" />
+                            </FormControl>
+                            <FormLabel className="font-normal text-green-600">{t.good}</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="medium" />
+                            </FormControl>
+                            <FormLabel className="font-normal text-yellow-600">{t.medium}</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="bad" />
+                            </FormControl>
+                            <FormLabel className="font-normal text-red-600">{t.bad}</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <FormItem>
               <FormLabel>{t.tags}</FormLabel>

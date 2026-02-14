@@ -7,10 +7,9 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocale } from "@/app/components/locale-provider";
@@ -38,8 +37,11 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <CardTitle className="text-xl">{sensor.name}</CardTitle>
+        <div className="flex-1">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <CardTitle className="text-xl">{sensor.name}</CardTitle>
+            <p className="text-sm text-muted-foreground">{sensor.brand}</p>
+          </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {sensor.tags.map((tag) => (
               <Badge key={tag} variant="secondary">{tag}</Badge>
@@ -68,6 +70,22 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
       <CardContent className="flex-grow space-y-4">
         <h4 className="font-semibold">{t.technicalSpecs}</h4>
         <div className="space-y-2">
+          {sensor.price > 0 && (
+            <div className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
+                <div className="flex items-center gap-2">
+                    {getEvaluationIcon(sensor.priceEvaluation)}
+                    <span>{t.price}:</span>
+                    <span className="font-semibold">{sensor.price.toFixed(2)} zł</span>
+                </div>
+                {sensor.link && (
+                    <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                        <a href={sensor.link} target="_blank" rel="noopener noreferrer" aria-label="Product link">
+                            <LinkIcon className="h-4 w-4" />
+                        </a>
+                    </Button>
+                )}
+            </div>
+          )}
           {sensor.specs.map(spec => (
             <div key={spec.id} className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -77,7 +95,7 @@ export default function SensorCard({ sensor, onDelete }: SensorCardProps) {
                 </div>
             </div>
           ))}
-          {sensor.specs.length === 0 && <p className="text-sm text-muted-foreground">Brak specyfikacji.</p>}
+          {sensor.specs.length === 0 && sensor.price <= 0 && <p className="text-sm text-muted-foreground">Brak specyfikacji.</p>}
         </div>
       </CardContent>
       <CardFooter>
