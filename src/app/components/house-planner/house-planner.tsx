@@ -95,18 +95,18 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   }, [gateways, assignedGatewayIds]);
 
   const activeGatewaysForDisplay = useMemo(() => {
-    // Start with dedicated gateways assigned to the house
     const devices: (Gateway | VoiceAssistant)[] = [...assignedGateways];
-
-    // Add all voice assistants that are configured as gateways
-    if (voiceAssistants) {
-        const assistantGateways = voiceAssistants.filter(va => va.isGateway);
+    
+    if (voiceAssistants && rooms) {
+        const assignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds || []));
+        const assistantGateways = voiceAssistants.filter(va =>
+            va.isGateway && assignedAssistantIds.has(va.id)
+        );
         devices.push(...assistantGateways);
     }
 
-    // Ensure uniqueness
     return Array.from(new Map(devices.map(d => [d.id, d])).values());
-  }, [assignedGateways, voiceAssistants]);
+  }, [assignedGateways, voiceAssistants, rooms]);
   
   const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocols = new Set<GatewayConnectivity>();

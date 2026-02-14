@@ -85,6 +85,7 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     });
   }, [activeGateways]);
 
+  const activeGatewayIds = useMemo(() => new Set(activeGateways.map(g => g.id)), [activeGateways]);
 
   useLayoutEffect(() => {
     const calculatePositions = () => {
@@ -254,7 +255,9 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
                                         <CardTitle className="text-base">{room.name}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-1 flex flex-col gap-2 mt-2">
-                                        {[...room.sensorIds, ...room.switchIds, ...room.lightingIds, ...room.otherDeviceIds, ...room.voiceAssistantIds].map(deviceId => {
+                                        {[...room.sensorIds, ...room.switchIds, ...room.lightingIds, ...room.otherDeviceIds, ...room.voiceAssistantIds]
+                                        .filter(deviceId => !activeGatewayIds.has(deviceId))
+                                        .map(deviceId => {
                                             const device = allDevicesMap.get(deviceId);
                                             if (!device) return null;
                                             const protocol = getDeviceProtocol(device as any);
