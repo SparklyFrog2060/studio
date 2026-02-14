@@ -26,6 +26,11 @@ interface RoomCardProps {
 
 const PROTOCOLS_NEEDING_GATEWAY: Connectivity[] = ['zigbee', 'tuya', 'matter'];
 
+interface MissingGatewayDetails {
+  protocol: string;
+  devices: { name: string }[];
+}
+
 export default function RoomCard({ room, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteRoom, houseGatewayProtocols }: RoomCardProps) {
   const { t } = useLocale();
   const hasSensors = room.sensorIds && room.sensorIds.length > 0;
@@ -34,36 +39,57 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
   const hasLighting = room.lightingIds && room.lightingIds.length > 0;
   const hasOtherDevices = room.otherDeviceIds && room.otherDeviceIds.length > 0;
 
-  const checkMissingGateways = (deviceIds: string[] | undefined, allDevices: {id: string, connectivity: Connectivity}[]) => {
-    if (!deviceIds || deviceIds.length === 0) return { hasMissing: false, missingProtocols: new Set<string>() };
-
-    const devicesInRoom = allDevices.filter(d => deviceIds.includes(d.id));
-    const neededProtocols = new Set<Connectivity>(
-      devicesInRoom
-        .map(d => d.connectivity)
-        .filter(p => PROTOCOLS_NEEDING_GATEWAY.includes(p))
-    );
+  const checkMissingGateways = (deviceIds: string[] | undefined, allDevices: {id: string, name: string, connectivity: Connectivity}[]) => {
+    if (!deviceIds || deviceIds.length === 0) return { hasMissing: false, missingDetails: [] };
     
-    const missingProtocols = new Set<string>();
-    neededProtocols.forEach(p => {
-      if (!houseGatewayProtocols.has(p as GatewayConnectivity)) {
-         missingProtocols.add(p);
-      }
+    const devicesInRoom = allDevices.filter(d => deviceIds.includes(d.id));
+    const missingGatewayInfo: { [protocol: string]: { name: string }[] } = {};
+
+    devicesInRoom.forEach(device => {
+        const protocol = device.connectivity;
+        if (PROTOCOLS_NEEDING_GATEWAY.includes(protocol) && !houseGatewayProtocols.has(protocol as GatewayConnectivity)) {
+            if (!missingGatewayInfo[protocol]) {
+                missingGatewayInfo[protocol] = [];
+            }
+            missingGatewayInfo[protocol].push({ name: device.name });
+        }
     });
 
-    return { hasMissing: missingProtocols.size > 0, missingProtocols };
+    const detailsArray = Object.entries(missingGatewayInfo).map(([protocol, devices]) => ({
+        protocol,
+        devices,
+    }));
+
+    return { hasMissing: detailsArray.length > 0, missingDetails: detailsArray };
   };
 
-  const { hasMissing: missingSensorGateway, missingProtocols: missingSensorProtocols } = useMemo(() => checkMissingGateways(room.sensorIds, sensors), [room.sensorIds, sensors, houseGatewayProtocols]);
-  const { hasMissing: missingSwitchGateway, missingProtocols: missingSwitchProtocols } = useMemo(() => checkMissingGateways(room.switchIds, switches), [room.switchIds, switches, houseGatewayProtocols]);
-  const { hasMissing: missingLightingGateway, missingProtocols: missingLightingProtocols } = useMemo(() => checkMissingGateways(room.lightingIds, lighting), [room.lightingIds, lighting, houseGatewayProtocols]);
-  const { hasMissing: missingOtherDeviceGateway, missingProtocols: missingOtherDeviceProtocols } = useMemo(() => checkMissingGateways(room.otherDeviceIds, otherDevices), [room.otherDeviceIds, otherDevices, houseGatewayProtocols]);
+  const { hasMissing: missingSensorGateway, missingDetails: missingSensorDetails } = useMemo(() => checkMissingGateways(room.sensorIds, sensors), [room.sensorIds, sensors, houseGatewayProtocols]);
+  const { hasMissing: missingSwitchGateway, missingDetails: missingSwitchDetails } = useMemo(() => checkMissingGateways(room.switchIds, switches), [room.switchIds, switches, houseGatewayProtocols]);
+  const { hasMissing: missingLightingGateway, missingDetails: missingLightingDetails } = useMemo(() => checkMissingGateways(room.lightingIds, lighting), [room.lightingIds, lighting, houseGatewayProtocols]);
+  const { hasMissing: missingOtherDeviceGateway, missingDetails: missingOtherDeviceDetails } = useMemo(() => checkMissingGateways(room.otherDeviceIds, otherDevices), [room.otherDeviceIds, otherDevices, houseGatewayProtocols]);
 
-  const formatMissingProtocols = (protocols: Set<string>): string => {
-    if (protocols.size === 0) return '';
-    const protocolList = Array.from(protocols).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
-    return `Wymagana bramka: ${protocolList}`;
+  const formatMissingGatewayInfo = (details: MissingGatewayDetails[]): React.ReactNode => {
+    if (details.length === 0) return null;
+    
+    return (
+        <div>
+            <p className="font-semibold mb-1">Wymagana bramka!</p>
+            {details.map(({ protocol, devices }) => (
+                <div key={protocol}>
+                    <p className="capitalize">
+                        <span className="font-medium">{protocol}:</span>{' '}
+                        {devices.map(d => d.name).join(', ')}
+                    </p>
+                </div>
+            ))}
+        </div>
+    );
   };
+  
+  const sensorTooltipContent = useMemo(() => formatMissingGatewayInfo(missingSensorDetails), [missingSensorDetails]);
+  const switchTooltipContent = useMemo(() => formatMissingGatewayInfo(missingSwitchDetails), [missingSwitchDetails]);
+  const lightingTooltipContent = useMemo(() => formatMissingGatewayInfo(missingLightingDetails), [missingLightingDetails]);
+  const otherDeviceTooltipContent = useMemo(() => formatMissingGatewayInfo(missingOtherDeviceDetails), [missingOtherDeviceDetails]);
 
   const roomPrice = useMemo(() => {
     const sensorPrice = (room.sensorIds || []).reduce((sum, id) => {
@@ -89,7 +115,7 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
     return sensorPrice + switchPrice + assistantPrice + lightingPrice + otherDevicePrice;
   }, [room, sensors, switches, voiceAssistants, lighting, otherDevices]);
   
-  const DeviceIconWithWarning = ({ hasDevice, isMissingGateway, missingProtocols, IconComponent, color, tooltipText }: any) => (
+  const DeviceIconWithWarning = ({ hasDevice, isMissingGateway, IconComponent, color, tooltipContent }: any) => (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="relative">
@@ -107,7 +133,7 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
       </TooltipTrigger>
       {isMissingGateway && (
         <TooltipContent>
-          <p>{tooltipText}</p>
+          {tooltipContent}
         </TooltipContent>
       )}
     </Tooltip>
@@ -134,14 +160,14 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
               isMissingGateway={missingSensorGateway}
               IconComponent={Thermometer}
               color="text-yellow-400"
-              tooltipText={formatMissingProtocols(missingSensorProtocols)}
+              tooltipContent={sensorTooltipContent}
             />
             <DeviceIconWithWarning
               hasDevice={hasSwitches}
               isMissingGateway={missingSwitchGateway}
               IconComponent={ToggleRight}
               color="text-green-500"
-              tooltipText={formatMissingProtocols(missingSwitchProtocols)}
+              tooltipContent={switchTooltipContent}
             />
             <Mic className={hasAssistants ? "text-blue-500" : "text-gray-300"} />
             <DeviceIconWithWarning
@@ -149,14 +175,14 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, lig
               isMissingGateway={missingLightingGateway}
               IconComponent={Lightbulb}
               color="text-orange-400"
-              tooltipText={formatMissingProtocols(missingLightingProtocols)}
+              tooltipContent={lightingTooltipContent}
             />
             <DeviceIconWithWarning
               hasDevice={hasOtherDevices}
               isMissingGateway={missingOtherDeviceGateway}
               IconComponent={Box}
               color="text-purple-400"
-              tooltipText={formatMissingProtocols(missingOtherDeviceProtocols)}
+              tooltipContent={otherDeviceTooltipContent}
             />
           </div>
           <div>
