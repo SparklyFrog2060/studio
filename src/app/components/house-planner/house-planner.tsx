@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, Connectivity, HouseConfig } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { updateHouseConfig } from "@/lib/firebase/house";
@@ -21,7 +21,6 @@ import type { View } from "@/app/sensor-creator-app";
 import AddHouseGatewayDialog from "./add-house-gateway-dialog";
 import { doc } from "firebase/firestore";
 import MindMapView from "./mind-map-view";
-
 
 interface ShoppingListItem {
   name: string;
@@ -59,6 +58,16 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [plannerView, setPlannerView] = useState<'list' | 'map'>('list');
 
+  const allDevicesMap = useMemo(() => {
+    const map = new Map<string, BaseDevice & {type: string}>();
+    sensors?.forEach(d => map.set(d.id, {...d, type: 'sensor'}));
+    switches?.forEach(d => map.set(d.id, {...d, type: 'switch'}));
+    voiceAssistants?.forEach(d => map.set(d.id, {...d, type: 'voice-assistant'}));
+    lighting?.forEach(d => map.set(d.id, {...d, type: 'lighting'}));
+    otherDevices?.forEach(d => map.set(d.id, {...d, type: 'other-device'}));
+    gateways?.forEach(d => map.set(d.id, {...d, type: 'gateway'}));
+    return map;
+  }, [sensors, switches, voiceAssistants, lighting, otherDevices, gateways]);
 
   const assignedGatewayIds = useMemo(() => houseConfig?.gatewayIds || [], [houseConfig]);
 
@@ -69,76 +78,57 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
 
   const activeGatewaysForDisplay = useMemo(() => {
     const devices: (Gateway | VoiceAssistant)[] = [...assignedGateways];
-    
     if (voiceAssistants && rooms) {
-        const assignedAssistantIds = new Set(rooms.flatMap(r => r.voiceAssistantIds || []));
-        const assistantGateways = voiceAssistants.filter(va =>
+        const assignedAssistantIds = new Set(rooms.flatMap(r => r.devices?.map(d => d.deviceId) || []));
+        const assistantGateways = voiceAssistants.filter(va => 
             va.isGateway && assignedAssistantIds.has(va.id)
         );
         devices.push(...assistantGateways);
     }
-
     return Array.from(new Map(devices.map(d => [d.id, d])).values());
-  }, [assignedGateways, voiceAssistants, rooms]);
+}, [assignedGateways, voiceAssistants, rooms]);
   
   const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocols = new Set<GatewayConnectivity>();
-    
     activeGatewaysForDisplay.forEach(device => {
         const deviceProtocols = 'connectivity' in device ? device.connectivity : device.gatewayProtocols || [];
         deviceProtocols.forEach(p => protocols.add(p as GatewayConnectivity));
     });
-
     return protocols;
   }, [activeGatewaysForDisplay]);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
-    if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices || !gateways) return [];
+    if (!rooms || !allDevicesMap.size) return [];
+
+    const neededCounts = new Map<string, number>();
+    rooms.forEach(room => {
+        (room.devices || []).forEach(device => {
+            neededCounts.set(device.deviceId, (neededCounts.get(device.deviceId) || 0) + 1);
+        });
+    });
 
     const itemsToBuy: ShoppingListItem[] = [];
 
-    const calculateItemsToBuy = (
-        assignedIds: string[], 
-        allDevices: (Sensor | Switch | Lighting | OtherDevice | VoiceAssistant)[],
-        type: ShoppingListItem['type']
-    ) => {
-        if (!allDevices) return;
+    neededCounts.forEach((neededCount, deviceId) => {
+        const device = allDevicesMap.get(deviceId);
+        if (!device) return;
 
-        const assignedCounts = new Map<string, number>();
-        for (const id of assignedIds) {
-            assignedCounts.set(id, (assignedCounts.get(id) || 0) + 1);
+        const ownedCount = device.quantity || 0;
+        const toBuyCount = Math.max(0, neededCount - ownedCount);
+
+        for (let i = 0; i < toBuyCount; i++) {
+            itemsToBuy.push({
+                name: device.name,
+                price: device.price || 0,
+                type: device.type as ShoppingListItem['type'],
+                link: device.link,
+            });
         }
+    });
 
-        for (const [deviceId, assignedCount] of assignedCounts.entries()) {
-            const device = allDevices.find(d => d.id === deviceId);
-            if (!device) continue;
-
-            const ownedCount = device.quantity || 0;
-            const toBuyCount = Math.max(0, assignedCount - ownedCount);
-
-            for (let i = 0; i < toBuyCount; i++) {
-                itemsToBuy.push({
-                    name: device.name,
-                    price: device.price || 0,
-                    type: type,
-                    link: device.link,
-                });
-            }
-        }
-    };
-
-    calculateItemsToBuy(rooms.flatMap(r => r.sensorIds || []), sensors, 'Sensor');
-    calculateItemsToBuy(rooms.flatMap(r => r.switchIds || []), switches, 'Switch');
-    calculateItemsToBuy(rooms.flatMap(r => r.voiceAssistantIds || []), voiceAssistants, 'VoiceAssistant');
-    calculateItemsToBuy(rooms.flatMap(r => r.lightingIds || []), lighting, 'Lighting');
-    calculateItemsToBuy(rooms.flatMap(r => r.otherDeviceIds || []), otherDevices, 'OtherDevice');
-
-    // Handle gateways separately as they are assigned to the house
     assignedGateways.forEach(gateway => {
         const ownedCount = gateway.quantity || 0;
-        const toBuyCount = Math.max(0, 1 - ownedCount); // Assume 1 is needed if assigned
-
-        if(toBuyCount > 0) {
+        if (ownedCount < 1) {
              itemsToBuy.push({
                 name: gateway.name,
                 price: gateway.price || 0,
@@ -149,7 +139,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     });
 
     return itemsToBuy;
-  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, gateways, assignedGateways]);
+  }, [rooms, allDevicesMap, assignedGateways]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
@@ -171,7 +161,6 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
 
   const handleDeleteFloor = async (floorId: string) => {
     if (!db) return;
-    // Also delete rooms on that floor
     const roomsToDelete = rooms?.filter(room => room.floorId === floorId) || [];
     try {
       await Promise.all(roomsToDelete.map(room => deleteRoom(db, room.id)));
@@ -192,10 +181,10 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       }
   };
 
-  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "sensorIds" | "switchIds" | "voiceAssistantIds" | "lightingIds" | "otherDeviceIds">) => {
+  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "devices">) => {
     if (!db) return;
     setIsSaving(true);
-    const newRoomData = { ...data, sensorIds: [], switchIds: [], voiceAssistantIds: [], lightingIds: [], otherDeviceIds: [] };
+    const newRoomData = { ...data, devices: [] };
     try {
       await addRoom(db, newRoomData);
       toast({ title: "Sukces!", description: `Pomieszczenie "${data.name}" zostało dodane.` });
@@ -302,11 +291,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                 key={floor.id}
                 floor={floor}
                 rooms={rooms?.filter(room => room.floorId === floor.id) || []}
-                sensors={sensors || []}
-                switches={switches || []}
-                voiceAssistants={voiceAssistants || []}
-                lighting={lighting || []}
-                otherDevices={otherDevices || []}
+                allDevicesMap={allDevicesMap}
                 onEditRoom={setEditingRoom}
                 onDeleteFloor={handleDeleteFloor}
                 onDeleteRoom={handleDeleteRoom}
@@ -327,11 +312,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
           <MindMapView
             floors={floors || []}
             rooms={rooms || []}
-            sensors={sensors || []}
-            switches={switches || []}
-            lighting={lighting || []}
-            otherDevices={otherDevices || []}
-            voiceAssistants={voiceAssistants || []}
+            allDevicesMap={allDevicesMap}
             activeGateways={activeGatewaysForDisplay}
           />
       )}
@@ -359,11 +340,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         onSubmit={handleUpdateRoom}
         isSaving={isSaving}
         room={editingRoom}
-        sensors={sensors || []}
-        switches={switches || []}
-        voiceAssistants={voiceAssistants || []}
-        lighting={lighting || []}
-        otherDevices={otherDevices || []}
+        allDevicesMap={allDevicesMap}
       />
 
       <ShoppingListDialog

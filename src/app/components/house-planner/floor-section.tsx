@@ -2,7 +2,7 @@
 "use client";
 
 import { useLocale } from "@/app/components/locale-provider";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, GatewayConnectivity } from "@/app/lib/types";
+import type { Floor, Room, GatewayConnectivity, BaseDevice } from "@/app/lib/types";
 import RoomCard from "./room-card";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
@@ -11,18 +11,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface FloorSectionProps {
   floor: Floor;
   rooms: Room[];
-  sensors: Sensor[];
-  switches: Switch[];
-  voiceAssistants: VoiceAssistant[];
-  lighting: Lighting[];
-  otherDevices: OtherDevice[];
+  allDevicesMap: Map<string, BaseDevice & { type: string }>;
   onEditRoom: (room: Room) => void;
   onDeleteFloor: (floorId: string) => void;
   onDeleteRoom: (roomId: string) => void;
   houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
-export default function FloorSection({ floor, rooms, sensors, switches, voiceAssistants, lighting, otherDevices, onEditRoom, onDeleteFloor, onDeleteRoom, houseGatewayProtocols }: FloorSectionProps) {
+export default function FloorSection({ floor, rooms, allDevicesMap, onEditRoom, onDeleteFloor, onDeleteRoom, houseGatewayProtocols }: FloorSectionProps) {
   const { t } = useLocale();
 
   return (
@@ -53,11 +49,7 @@ export default function FloorSection({ floor, rooms, sensors, switches, voiceAss
             <RoomCard 
               key={room.id} 
               room={room} 
-              sensors={sensors} 
-              switches={switches} 
-              voiceAssistants={voiceAssistants}
-              lighting={lighting}
-              otherDevices={otherDevices}
+              allDevicesMap={allDevicesMap}
               onEditRoom={onEditRoom} 
               onDeleteRoom={onDeleteRoom}
               houseGatewayProtocols={houseGatewayProtocols}
@@ -70,5 +62,3 @@ export default function FloorSection({ floor, rooms, sensors, switches, voiceAss
     </div>
   );
 }
-
-    

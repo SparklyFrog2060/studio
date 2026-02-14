@@ -10,7 +10,7 @@ export interface Specification {
 export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth';
 export type GatewayConnectivity = 'matter' | 'zigbee' | 'bluetooth' | 'tuya';
 
-export interface Sensor {
+export interface BaseDevice {
   id: string; // Document ID from firestore
   name: string;
   brand: string;
@@ -18,7 +18,6 @@ export interface Sensor {
   price: number;
   quantity?: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
-  connectivity: Connectivity;
   homeAssistantCompatibility: number;
   score: number;
   tags: string[];
@@ -26,88 +25,32 @@ export interface Sensor {
   createdAt?: Timestamp;
 }
 
-export interface Switch {
-  id: string; // Document ID from firestore
-  name: string;
+export interface Sensor extends BaseDevice {
+  connectivity: Connectivity;
+}
+
+export interface Switch extends BaseDevice {
   type: 'wall' | 'in-wall';
-  brand: string;
-  link?: string;
-  price: number;
-  quantity?: number;
-  priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
-  homeAssistantCompatibility: number;
-  score: number;
-  tags: string[];
-  specs: Specification[];
-  createdAt?: Timestamp;
 }
 
-export interface Lighting {
-  id: string; // Document ID from firestore
-  name: string;
+export interface Lighting extends BaseDevice {
   type: 'bulb' | 'lamp' | 'led_strip' | 'other';
-  brand: string;
-  link?: string;
-  price: number;
-  quantity?: number;
-  priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
-  homeAssistantCompatibility: number;
-  score: number;
-  tags: string[];
-  specs: Specification[];
-  createdAt?: Timestamp;
 }
 
-export interface OtherDevice {
-  id: string; // Document ID from firestore
-  name: string;
+export interface OtherDevice extends BaseDevice {
   type: 'washing_machine' | 'dishwasher' | 'tv' | 'speaker' | 'robot_vacuum' | 'air_purifier' | 'other';
-  brand: string;
-  link?: string;
-  price: number;
-  quantity?: number;
-  priceEvaluation: 'good' | 'medium' | 'bad';
   connectivity: Connectivity;
-  homeAssistantCompatibility: number;
-  score: number;
-  tags: string[];
-  specs: Specification[];
-  createdAt?: Timestamp;
 }
 
-export interface VoiceAssistant {
-  id: string; // Document ID from firestore
-  name: string;
-  brand: string;
-  link?: string;
-  price: number;
-  quantity?: number;
-  priceEvaluation: 'good' | 'medium' | 'bad';
-  homeAssistantCompatibility: number;
-  score: number;
-  tags: string[];
-  specs: Specification[];
+export interface VoiceAssistant extends BaseDevice {
   isGateway?: boolean;
   gatewayProtocols?: GatewayConnectivity[];
-  createdAt?: Timestamp;
 }
 
-export interface Gateway {
-  id: string; // Document ID from firestore
-  name: string;
-  brand: string;
-  link?: string;
-  price: number;
-  quantity?: number;
-  priceEvaluation: 'good' | 'medium' | 'bad';
+export interface Gateway extends BaseDevice {
   connectivity: GatewayConnectivity[];
-  homeAssistantCompatibility: number;
-  score: number;
-  tags: string[];
-  specs: Specification[];
-  createdAt?: Timestamp;
 }
 
 export interface Floor {
@@ -116,15 +59,17 @@ export interface Floor {
   createdAt?: Timestamp;
 }
 
+export interface RoomDevice {
+  instanceId: string;
+  deviceId: string;
+  customName: string;
+}
+
 export interface Room {
   id: string;
   name: string;
   floorId: string;
-  sensorIds: string[];
-  switchIds: string[];
-  voiceAssistantIds: string[];
-  lightingIds: string[];
-  otherDeviceIds: string[];
+  devices: RoomDevice[];
   createdAt?: Timestamp;
 }
 

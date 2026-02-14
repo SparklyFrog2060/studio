@@ -15,7 +15,7 @@ import type { Room, Floor } from "@/app/lib/types";
 interface AddRoomDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Room, "id" | "createdAt" | "sensorIds" | "switchIds" | "voiceAssistantIds" | "lightingIds" | "otherDeviceIds">) => void;
+  onSubmit: (data: Omit<Room, "id" | "createdAt" | "devices">) => void;
   isSaving: boolean;
   floors: Floor[];
 }
@@ -99,5 +99,3 @@ export default function AddRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving
     </Dialog>
   );
 }
-
-    

@@ -650,30 +650,27 @@
           "type": "string",
           "description": "The ID of the floor this room belongs to."
         },
-        "sensorIds": {
+        "devices": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of sensor IDs assigned to this room."
-        },
-        "switchIds": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of switch IDs assigned to this room."
-        },
-        "voiceAssistantIds": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of voice assistant IDs assigned to this room."
-        },
-        "lightingIds": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of lighting device IDs assigned to this room."
-        },
-        "otherDeviceIds": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of other device IDs assigned to this room."
+          "description": "A list of device instances assigned to this room.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "description": "A unique identifier for this specific device instance in the room."
+              },
+              "deviceId": {
+                "type": "string",
+                "description": "The ID of the base device model."
+              },
+              "customName": {
+                "type": "string",
+                "description": "A user-defined name for this specific instance (e.g., 'Lampka nocna')."
+              }
+            },
+            "required": ["instanceId", "deviceId", "customName"]
+          }
         },
         "createdAt": {
           "type": "string",
@@ -681,7 +678,7 @@
           "description": "The timestamp when the room was created."
         }
       },
-      "required": ["name", "floorId", "sensorIds", "switchIds", "voiceAssistantIds", "lightingIds", "otherDeviceIds", "createdAt"]
+      "required": ["name", "floorId", "devices", "createdAt"]
     },
     "HouseConfig": {
       "title": "HouseConfig",

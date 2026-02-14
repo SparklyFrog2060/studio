@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Floor, Room, Sensor, Switch, Lighting, OtherDevice, VoiceAssistant, Gateway, Connectivity, GatewayConnectivity } from '@/app/lib/types';
+import type { Floor, Room, VoiceAssistant, Gateway, GatewayConnectivity, BaseDevice, Connectivity } from '@/app/lib/types';
 import { useLocale } from '../locale-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,11 +11,7 @@ import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic } fr
 interface MindMapViewProps {
   floors: Floor[];
   rooms: Room[];
-  sensors: Sensor[];
-  switches: Switch[];
-  lighting: Lighting[];
-  otherDevices: OtherDevice[];
-  voiceAssistants: VoiceAssistant[];
+  allDevicesMap: Map<string, BaseDevice & { type: string }>;
   activeGateways: (Gateway | VoiceAssistant)[];
 }
 
@@ -37,7 +33,6 @@ interface UnifiedGatewayNode {
   icon: JSX.Element;
 }
 
-
 const PROTOCOL_COLORS: Record<string, string> = {
   matter: 'hsl(var(--chart-1))',
   zigbee: 'hsl(var(--chart-2))',
@@ -46,28 +41,31 @@ const PROTOCOL_COLORS: Record<string, string> = {
   bluetooth: 'hsl(var(--chart-5))',
 };
 
-const getDeviceProtocol = (device: { connectivity?: Connectivity | GatewayConnectivity[] }): Connectivity | undefined => {
-    if (typeof device.connectivity === 'string') {
-        return device.connectivity;
+const getDeviceProtocol = (device: BaseDevice & {type: string}): Connectivity | undefined => {
+    if ('connectivity' in device) {
+        return (device as any).connectivity;
     }
     return undefined;
 }
 
-export default function MindMapView({ floors, rooms, sensors, switches, lighting, otherDevices, voiceAssistants, activeGateways }: MindMapViewProps) {
+const DeviceIcon = ({ type, ...props }: {type: string} & React.ComponentProps<typeof Thermometer>) => {
+    switch (type) {
+        case 'sensor': return <Thermometer {...props} />;
+        case 'switch': return <ToggleRight {...props} />;
+        case 'lighting': return <Lightbulb {...props} />;
+        case 'other-device': return <Box {...props} />;
+        case 'voice-assistant': return <Mic {...props} />;
+        default: return <Box {...props} />;
+    }
+};
+
+export default function MindMapView({ floors, rooms, allDevicesMap, activeGateways }: MindMapViewProps) {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, Position>>({});
   const [lines, setLines] = useState<Line[]>([]);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const allDevicesMap = useMemo(() => new Map([
-    ...sensors.map(d => [d.id, { ...d, type: 'sensor' as const }]),
-    ...switches.map(d => [d.id, { ...d, type: 'switch' as const }]),
-    ...lighting.map(d => [d.id, { ...d, type: 'lighting' as const }]),
-    ...otherDevices.map(d => [d.id, { ...d, type: 'otherDevice' as const }]),
-    ...voiceAssistants.map(d => [d.id, { ...d, type: 'voiceAssistant' as const }]),
-  ]), [sensors, switches, lighting, otherDevices, voiceAssistants]);
-  
   const gatewayNodes = useMemo((): UnifiedGatewayNode[] => {
     return activeGateways.map(gw => {
       if ('connectivity' in gw) { // It's a dedicated Gateway
@@ -87,8 +85,6 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
       };
     });
   }, [activeGateways]);
-
-  const activeGatewayIds = useMemo(() => new Set(activeGateways.map(g => g.id)), [activeGateways]);
 
   useLayoutEffect(() => {
     const calculatePositions = () => {
@@ -123,79 +119,77 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
             observer.unobserve(currentRef);
         }
     };
-  }, [floors, rooms, sensors, switches, lighting, otherDevices, voiceAssistants, activeGateways]);
+  }, [floors, rooms, allDevicesMap, activeGateways]);
   
   const midLevelNodes = useMemo(() => {
     const nodes: UnifiedGatewayNode[] = [...gatewayNodes];
 
-    const allAssignedDevices = rooms.flatMap(room => [
-        ...(room.sensorIds || []).map(id => sensors.find(d => d.id === id)),
-        ...(room.switchIds || []).map(id => switches.find(d => d.id === id)),
-        ...(room.lightingIds || []).map(id => lighting.find(d => d.id === id)),
-        ...(room.otherDeviceIds || []).map(id => otherDevices.find(d => d.id === id)),
-    ]).filter((d): d is Sensor | Switch | Lighting | OtherDevice => !!d);
-
-    const neededHardcodedProtocols = new Set<string>();
-    allAssignedDevices.forEach(device => {
-        if (device && ['tuya', 'other_app', 'bluetooth'].includes(device.connectivity)) {
-            neededHardcodedProtocols.add(device.connectivity);
-        }
+    const allAssignedDeviceProtocols = new Set<string>();
+    rooms.forEach(room => {
+        (room.devices || []).forEach(instance => {
+            const device = allDevicesMap.get(instance.deviceId);
+            if (device) {
+                const protocol = getDeviceProtocol(device as any);
+                if (protocol) {
+                    allAssignedDeviceProtocols.add(protocol);
+                }
+            }
+        });
     });
 
-    if (neededHardcodedProtocols.has('tuya')) {
+    if (allAssignedDeviceProtocols.has('tuya')) {
         nodes.push({ id: 'cloud_tuya', name: t.tuyaCloud, protocols: ['tuya'], icon: <Cloud className="h-6 w-6" /> });
     }
-    if (neededHardcodedProtocols.has('other_app')) {
+    if (allAssignedDeviceProtocols.has('other_app')) {
         nodes.push({ id: 'local_other_app', name: t.localIntegration, protocols: ['other_app'], icon: <Cloud className="h-6 w-6" /> });
     }
-    if (neededHardcodedProtocols.has('bluetooth')) {
+    if (allAssignedDeviceProtocols.has('bluetooth')) {
         nodes.push({ id: 'local_bluetooth', name: 'Bluetooth', protocols: ['bluetooth'], icon: <Cloud className="h-6 w-6" /> });
     }
 
     return Array.from(new Map(nodes.map(item => [item.id, item])).values());
-  }, [gatewayNodes, rooms, sensors, switches, lighting, otherDevices, t.tuyaCloud, t.localIntegration]);
+  }, [gatewayNodes, rooms, allDevicesMap, t.tuyaCloud, t.localIntegration]);
 
   useLayoutEffect(() => {
     if (Object.keys(nodePositions).length === 0) return;
 
     const newLines: Line[] = [];
 
-    const uniqueDeviceIds = new Set(rooms.flatMap(room => [
-        ...(room.sensorIds || []),
-        ...(room.switchIds || []),
-        ...(room.lightingIds || []),
-        ...(room.otherDeviceIds || []),
-    ]));
+    rooms.forEach(room => {
+        const protocolsInRoom = new Map<string, string>(); // Map protocol to a target gateway ID
 
-    uniqueDeviceIds.forEach(deviceId => {
-        const device = allDevicesMap.get(deviceId);
-        if (!device) return;
+        (room.devices || []).forEach(instance => {
+            const device = allDevicesMap.get(instance.deviceId);
+            if (!device) return;
 
-        const protocol = getDeviceProtocol(device as any);
-        if (!protocol) return;
+            const protocol = getDeviceProtocol(device as any);
+            if (!protocol) return;
 
-        let targetNodeId: string | undefined;
+            let targetNodeId: string | undefined;
+            if (protocol === 'matter' || protocol === 'zigbee') {
+                const suitableGateway = gatewayNodes.find(g => g.protocols.includes(protocol as GatewayConnectivity));
+                targetNodeId = suitableGateway?.id;
+            } else if (protocol === 'tuya') {
+                targetNodeId = 'cloud_tuya';
+            } else if (protocol === 'other_app') {
+                targetNodeId = 'local_other_app';
+            } else if (protocol === 'bluetooth') {
+                targetNodeId = 'local_bluetooth';
+            }
+
+            if (targetNodeId) {
+                protocolsInRoom.set(protocol, targetNodeId);
+            }
+        });
         
-        if (protocol === 'matter' || protocol === 'zigbee') {
-            const suitableGatewayNode = gatewayNodes.find(node => node.protocols.includes(protocol as GatewayConnectivity));
-            targetNodeId = suitableGatewayNode?.id;
-        } else if (protocol === 'tuya') {
-            targetNodeId = 'cloud_tuya';
-        } else if (protocol === 'other_app') {
-            targetNodeId = 'local_other_app';
-        } else if (protocol === 'bluetooth') {
-            targetNodeId = 'local_bluetooth';
-        }
-
-        if (targetNodeId) {
+        protocolsInRoom.forEach((targetId, protocol) => {
             newLines.push({
-                from: device.id,
-                to: targetNodeId,
+                from: room.id, // Draw line from the room card
+                to: targetId,
                 color: PROTOCOL_COLORS[protocol] || 'gray',
             });
-        }
+        });
     });
-
 
     midLevelNodes.forEach(node => {
         newLines.push({
@@ -207,17 +201,6 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
 
     setLines(newLines);
 }, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes]);
-
-  const renderDeviceIcon = (type: string) => {
-      switch (type) {
-          case 'sensor': return <Thermometer className="h-4 w-4" />;
-          case 'switch': return <ToggleRight className="h-4 w-4" />;
-          case 'lighting': return <Lightbulb className="h-4 w-4" />;
-          case 'otherDevice': return <Box className="h-4 w-4" />;
-          case 'voiceAssistant': return <Mic className="h-4 w-4" />;
-          default: return null;
-      }
-  };
 
   return (
     <div ref={containerRef} className="relative w-full min-h-[80vh] p-4 bg-muted/30 rounded-lg overflow-auto">
@@ -258,38 +241,27 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
                         </CardHeader>
                         <CardContent className="p-2 flex flex-wrap gap-4 justify-center">
                             {rooms.filter(r => r.floorId === floor.id).map(room => {
-                                const deviceCounts = new Map<string, number>();
-                                const allDeviceIdsInRoom = [
-                                    ...(room.sensorIds || []),
-                                    ...(room.switchIds || []),
-                                    ...(room.lightingIds || []),
-                                    ...(room.otherDeviceIds || []),
-                                    ...(room.voiceAssistantIds || []),
-                                ].filter(id => !activeGatewayIds.has(id));
-
-                                for (const id of allDeviceIdsInRoom) {
-                                    deviceCounts.set(id, (deviceCounts.get(id) || 0) + 1);
-                                }
-
                                 return (
-                                <Card key={room.id} className="p-3 min-w-[200px] bg-background">
+                                <Card key={room.id} ref={el => nodeRefs.current[room.id] = el} className="p-3 min-w-[200px] bg-background">
                                     <CardHeader className="p-1">
                                         <CardTitle className="text-base">{room.name}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-1 flex flex-col gap-2 mt-2">
-                                        {Array.from(deviceCounts.entries()).map(([deviceId, count]) => {
-                                            const device = allDevicesMap.get(deviceId);
+                                        {(room.devices || []).map(instance => {
+                                            const device = allDevicesMap.get(instance.deviceId);
                                             if (!device) return null;
                                             const protocol = getDeviceProtocol(device as any);
                                             return (
-                                                <div key={deviceId} ref={el => { if (el) nodeRefs.current[deviceId] = el; }} className="flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs">
-                                                    {renderDeviceIcon(device.type)}
-                                                    <span className="flex-1">{device.name}</span>
-                                                    {count > 1 && <span className="font-bold text-muted-foreground">x{count}</span>}
+                                                <div key={instance.instanceId} className="flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs">
+                                                    <DeviceIcon type={device.type} className="h-4 w-4 flex-shrink-0"/>
+                                                    <span className="flex-1 truncate" title={instance.customName}>{instance.customName}</span>
                                                     {protocol && <Badge variant="outline" style={{borderColor: PROTOCOL_COLORS[protocol]}} className="text-xs capitalize">{protocol}</Badge>}
                                                 </div>
                                             )
                                         })}
+                                        {(room.devices || []).length === 0 && (
+                                            <p className="text-xs text-muted-foreground">{t.noDevicesAssigned}</p>
+                                        )}
                                     </CardContent>
                                 </Card>
                             )})}
@@ -301,5 +273,3 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     </div>
   );
 }
-
-    
