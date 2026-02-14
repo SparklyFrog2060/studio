@@ -45,6 +45,8 @@ export const locales = {
     switches: "Switches",
     voiceAssistants: "Voice Assistants",
     wip: "This section is under construction.",
+    lighting: "Lighting",
+    otherDevices: "Other Devices",
     // Switch specific
     addSwitch: "Add Switch",
     editSwitch: "Edit Switch",
@@ -148,6 +150,8 @@ export const locales = {
     switches: "Włączniki",
     voiceAssistants: "Asystenci Głosowi",
     wip: "Ta sekcja jest w budowie.",
+    lighting: "Oświetlenie",
+    otherDevices: "Inne Urządzenia",
     // Switch specific
     addSwitch: "Dodaj Włącznik",
     editSwitch: "Edytuj Włącznik",

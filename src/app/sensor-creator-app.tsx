@@ -19,7 +19,7 @@ import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
 import type { Sensor, Switch, VoiceAssistant, Gateway } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu } from 'lucide-react';
+import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu, Lightbulb, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/sheet"
 import { ThemeSwitcher } from "./components/theme-switcher";
 
-type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants' | 'gateways';
+type View = 'planner' | 'sensors' | 'switches' | 'lighting' | 'other-devices' | 'voice-assistants' | 'gateways';
 type GatewayDevice = (Gateway & { deviceType: 'gateway' }) | (VoiceAssistant & { deviceType: 'voice-assistant' });
 
 export default function SensorCreatorApp() {
@@ -264,6 +264,8 @@ export default function SensorCreatorApp() {
           </div>
         </div>
       );
+      case 'lighting': return <div className="text-center text-muted-foreground mt-20">{t.wip}</div>;
+      case 'other-devices': return <div className="text-center text-muted-foreground mt-20">{t.wip}</div>;
       case 'voice-assistants': return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} /></div>
@@ -314,6 +316,14 @@ export default function SensorCreatorApp() {
                           <ToggleRight className="mr-2 h-5 w-5" />
                           {t.switches}
                       </Button>
+                      <Button variant={activeView === 'lighting' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('lighting')}>
+                          <Lightbulb className="mr-2 h-5 w-5" />
+                          {t.lighting}
+                      </Button>
+                      <Button variant={activeView === 'other-devices' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('other-devices')}>
+                          <Box className="mr-2 h-5 w-5" />
+                          {t.otherDevices}
+                      </Button>
                       <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="lg" className="w-full justify-start text-base" onClick={() => handleMobileLinkClick('voice-assistants')}>
                           <Mic className="mr-2 h-5 w-5" />
                           {t.voiceAssistants}
@@ -341,6 +351,14 @@ export default function SensorCreatorApp() {
                 <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
                     <ToggleRight className="mr-2 h-4 w-4" />
                     {t.switches}
+                </Button>
+                <Button variant={activeView === 'lighting' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('lighting')} className="w-32">
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    {t.lighting}
+                </Button>
+                <Button variant={activeView === 'other-devices' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('other-devices')} className="w-40">
+                    <Box className="mr-2 h-4 w-4" />
+                    {t.otherDevices}
                 </Button>
                  <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')} className="w-40">
                     <Mic className="mr-2 h-4 w-4" />
