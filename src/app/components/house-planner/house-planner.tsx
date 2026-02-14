@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, Connectivity } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { useLocale } from "@/app/components/locale-provider";
@@ -49,24 +49,72 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
-  
-  const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
-    if (!gateways && !voiceAssistants) return new Set();
 
+  const neededProtocols = useMemo((): Set<GatewayConnectivity> => {
+    const protocolSet = new Set<GatewayConnectivity>();
+    if (!rooms || !sensors || !switches || !lighting || !otherDevices) return protocolSet;
+
+    const allAssignedSensorIds = new Set(rooms.flatMap(r => r.sensorIds || []));
+    const allAssignedSwitchIds = new Set(rooms.flatMap(r => r.switchIds || []));
+    const allAssignedLightingIds = new Set(rooms.flatMap(r => r.lightingIds || []));
+    const allAssignedOtherDeviceIds = new Set(rooms.flatMap(r => r.otherDeviceIds || []));
+
+    const checkProtocols = (devices: {id: string, connectivity: Connectivity}[], assignedIds: Set<string>) => {
+      devices?.forEach(device => {
+        if (assignedIds.has(device.id)) {
+          if (device.connectivity === 'zigbee' || device.connectivity === 'tuya') {
+            protocolSet.add(device.connectivity);
+          }
+        }
+      });
+    };
+
+    checkProtocols(sensors || [], allAssignedSensorIds);
+    checkProtocols(switches || [], allAssignedSwitchIds);
+    checkProtocols(lighting || [], allAssignedLightingIds);
+    checkProtocols(otherDevices || [], allAssignedOtherDeviceIds);
+
+    return protocolSet;
+  }, [rooms, sensors, switches, lighting, otherDevices]);
+
+  const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocols = new Set<GatewayConnectivity>();
+    if (!neededProtocols.size && (!rooms || rooms.length === 0)) return protocols;
 
     (gateways || []).forEach(g => {
-      (g.connectivity || []).forEach(p => protocols.add(p));
+        if (g.connectivity.some(p => neededProtocols.has(p))) {
+            g.connectivity.forEach(p => protocols.add(p));
+        }
     });
 
-    (voiceAssistants || []).forEach(va => {
-      if (va.isGateway) {
+    const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
+    (voiceAssistants || [])
+      .filter(va => va.isGateway && assignedAssistantIds.has(va.id))
+      .forEach(va => {
         (va.gatewayProtocols || []).forEach(p => protocols.add(p));
-      }
-    });
+      });
 
     return protocols;
-  }, [gateways, voiceAssistants]);
+  }, [neededProtocols, gateways, voiceAssistants, rooms]);
+  
+  const activeGatewaysForDisplay = useMemo(() => {
+    const devices: (Gateway | VoiceAssistant)[] = [];
+
+    if (gateways && neededProtocols.size > 0) {
+      const activeDedicatedGateways = gateways.filter(g =>
+        g.connectivity.some(p => neededProtocols.has(p))
+      );
+      devices.push(...activeDedicatedGateways);
+    }
+
+    const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
+    if (voiceAssistants) {
+        const assignedAssistants = voiceAssistants.filter(va => va.isGateway && assignedAssistantIds.has(va.id));
+        devices.push(...assignedAssistants);
+    }
+
+    return Array.from(new Map(devices.map(d => [d.id, d])).values());
+  }, [gateways, voiceAssistants, rooms, neededProtocols]);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
     if (!rooms || !sensors || !switches || !voiceAssistants || !lighting || !otherDevices) return [];
@@ -97,35 +145,16 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         .filter(d => allAssignedOtherDeviceIds.has(d.id))
         .map(d => ({ name: d.name, price: d.price || 0, type: 'OtherDevice' as const, link: d.link }));
         
-    const gatewayItems = (gateways || []).map(g => ({ name: g.name, price: g.price || 0, type: 'Gateway' as const, link: g.link }));
+    const gatewayItems = activeGatewaysForDisplay
+      .filter(d => 'connectivity' in d)
+      .map(g => ({ name: g.name, price: g.price || 0, type: 'Gateway' as const, link: g.link }));
 
     return [...assignedSensors, ...assignedSwitches, ...assignedAssistants, ...assignedLighting, ...assignedOtherDevices, ...gatewayItems];
-  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, gateways]);
+  }, [rooms, sensors, switches, voiceAssistants, lighting, otherDevices, activeGatewaysForDisplay]);
   
   const totalHousePrice = useMemo(() => {
     return shoppingListItems.reduce((sum, item) => sum + item.price, 0);
   }, [shoppingListItems]);
-
-  const activeGatewaysForDisplay = useMemo(() => {
-    const devices: (Gateway | VoiceAssistant)[] = [];
-
-    // Add all dedicated gateways
-    if (gateways) {
-        devices.push(...gateways);
-    }
-
-    // Find all assigned voice assistant IDs from all rooms
-    const assignedAssistantIds = new Set(rooms?.flatMap(r => r.voiceAssistantIds || []) || []);
-
-    // Add voice assistants that are assigned to a room AND are gateways
-    if (voiceAssistants) {
-        const assignedAssistants = voiceAssistants.filter(va => va.isGateway && assignedAssistantIds.has(va.id));
-        devices.push(...assignedAssistants);
-    }
-    
-    return devices;
-  }, [gateways, voiceAssistants, rooms]);
-
 
   const handleAddFloor = async (data: Omit<Floor, "id" | "createdAt">) => {
     if (!db) return;
