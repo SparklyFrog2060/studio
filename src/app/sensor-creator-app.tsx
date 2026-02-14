@@ -294,7 +294,7 @@ export default function SensorCreatorApp() {
     <div className="flex flex-col min-h-screen bg-muted/20">
        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
-            <div className="mr-auto flex items-center">
+            <div className="flex items-center">
                 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="md:hidden mr-2">
@@ -339,38 +339,40 @@ export default function SensorCreatorApp() {
                 <h1 className="text-xl font-bold">{t.appName}</h1>
             </div>
 
-            <nav className="hidden md:flex items-center space-x-1 mx-auto bg-muted p-1 rounded-lg">
-                <Button variant={activeView === 'planner' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('planner')} className="w-40">
-                    <LayoutGrid className="mr-2 h-4 w-4" />
-                    {t.housePlanner}
-                </Button>
-                <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')} className="w-32">
-                    <Thermometer className="mr-2 h-4 w-4" />
-                    {t.sensors}
-                </Button>
-                <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('switches')} className="w-32">
-                    <ToggleRight className="mr-2 h-4 w-4" />
-                    {t.switches}
-                </Button>
-                <Button variant={activeView === 'lighting' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('lighting')} className="w-32">
-                    <Lightbulb className="mr-2 h-4 w-4" />
-                    {t.lighting}
-                </Button>
-                <Button variant={activeView === 'other-devices' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('other-devices')} className="w-40">
-                    <Box className="mr-2 h-4 w-4" />
-                    {t.otherDevices}
-                </Button>
-                 <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')} className="w-40">
-                    <Mic className="mr-2 h-4 w-4" />
-                    {t.voiceAssistants}
-                </Button>
-                <Button variant={activeView === 'gateways' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('gateways')} className="w-32">
-                    <Router className="mr-2 h-4 w-4" />
-                    {t.gateways}
-                </Button>
-            </nav>
+            <div className="flex-1 hidden md:flex justify-center px-4 min-w-0">
+              <nav className="flex items-center space-x-1 bg-muted p-1 rounded-lg">
+                  <Button variant={activeView === 'planner' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('planner')}>
+                      <LayoutGrid className="mr-2 h-4 w-4" />
+                      {t.housePlanner}
+                  </Button>
+                  <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')}>
+                      <Thermometer className="mr-2 h-4 w-4" />
+                      {t.sensors}
+                  </Button>
+                  <Button variant={activeView === 'switches' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('switches')}>
+                      <ToggleRight className="mr-2 h-4 w-4" />
+                      {t.switches}
+                  </Button>
+                  <Button variant={activeView === 'lighting' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('lighting')}>
+                      <Lightbulb className="mr-2 h-4 w-4" />
+                      {t.lighting}
+                  </Button>
+                  <Button variant={activeView === 'other-devices' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('other-devices')}>
+                      <Box className="mr-2 h-4 w-4" />
+                      {t.otherDevices}
+                  </Button>
+                  <Button variant={activeView === 'voice-assistants' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('voice-assistants')}>
+                      <Mic className="mr-2 h-4 w-4" />
+                      {t.voiceAssistants}
+                  </Button>
+                  <Button variant={activeView === 'gateways' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('gateways')}>
+                      <Router className="mr-2 h-4 w-4" />
+                      {t.gateways}
+                  </Button>
+              </nav>
+            </div>
             
-            <div className="flex flex-1 items-center justify-end space-x-2">
+            <div className="flex items-center justify-end space-x-2">
                 <ThemeSwitcher />
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
