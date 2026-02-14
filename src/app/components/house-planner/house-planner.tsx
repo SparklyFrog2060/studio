@@ -11,7 +11,7 @@ import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Wallet, Receipt, Router, Mic, Map, List } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, List } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -257,7 +257,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         </div>
         <div className="flex flex-col sm:flex-row w-full sm:w-auto justify-end gap-2">
             <Button variant="outline" onClick={() => setPlannerView(v => v === 'list' ? 'map' : 'list')}>
-              {plannerView === 'list' ? <Map className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
+              {plannerView === 'list' ? <MapIcon className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
               {plannerView === 'list' ? t.mapView : t.listView}
             </Button>
             <Button onClick={() => setIsAddFloorDialogOpen(true)}>
@@ -386,3 +386,5 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     </div>
   );
 }
+
+    
