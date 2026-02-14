@@ -148,15 +148,14 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
         if (!protocol) return;
 
         let targetNodeId: string | undefined;
-
+        
         if (protocol === 'matter' || protocol === 'zigbee') {
-            const suitableGateway = activeGateways.find(gw => {
-                if ('connectivity' in gw) { // It's a dedicated Gateway
-                    return gw.connectivity.includes(protocol as GatewayConnectivity);
-                } else { // It's a VoiceAssistant
-                    return gw.isGateway && gw.gatewayProtocols?.includes(protocol as GatewayConnectivity);
-                }
-            });
+            const suitableGateway = activeGateways.find(gw => 
+                // Is it a dedicated gateway with the protocol?
+                ('connectivity' in gw && (gw as Gateway).connectivity.includes(protocol as GatewayConnectivity)) ||
+                // OR is it a voice assistant gateway with the protocol?
+                ('isGateway' in gw && (gw as VoiceAssistant).isGateway && (gw as VoiceAssistant).gatewayProtocols?.includes(protocol as GatewayConnectivity))
+            );
             targetNodeId = suitableGateway?.id;
         } else if (protocol === 'tuya') {
             targetNodeId = 'cloud_tuya';
