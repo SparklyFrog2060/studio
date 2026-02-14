@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
 import { addVoiceAssistant, deleteVoiceAssistant, updateVoiceAssistant } from "@/lib/firebase/voice-assistants";
+import { addGateway, deleteGateway, updateGateway } from "@/lib/firebase/gateways";
 import { useToast } from "@/hooks/use-toast";
 import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
@@ -13,10 +14,12 @@ import AddSwitchForm from "./components/switch-creator/add-switch-form";
 import SwitchList from "./components/switch-creator/switch-list";
 import AddVoiceAssistantForm from "./components/voice-assistant-creator/add-voice-assistant-form";
 import VoiceAssistantList from "./components/voice-assistant-creator/voice-assistant-list";
+import AddGatewayForm from "./components/gateway-creator/add-gateway-form";
+import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
-import type { Sensor, Switch, VoiceAssistant } from "./lib/types";
+import type { Sensor, Switch, VoiceAssistant, Gateway } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid } from 'lucide-react';
+import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,29 +32,37 @@ import {
   DialogContent,
 } from "@/components/ui/dialog"
 
-type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants';
+type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants' | 'gateways';
+type GatewayDevice = (Gateway & { deviceType: 'gateway' }) | (VoiceAssistant & { deviceType: 'voice-assistant' });
 
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
 
-  // Sensors state
   const { data: sensors, isLoading: isLoadingSensors } = useCollection<Sensor>(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSensor, setIsSavingSensor] = useState(false);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   
-  // Switches state
   const { data: switches, isLoading: isLoadingSwitches } = useCollection<Switch>(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSwitch, setIsSavingSwitch] = useState(false);
   const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
 
-  // Voice Assistants state
   const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
   const [editingVoiceAssistant, setEditingVoiceAssistant] = useState<VoiceAssistant | null>(null);
 
+  const { data: gateways, isLoading: isLoadingGateways } = useCollection<Gateway>(db ? "gateways" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingGateway, setIsSavingGateway] = useState(false);
+  const [editingGateway, setEditingGateway] = useState<Gateway | null>(null);
+
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<View>('planner');
+
+  const gatewayDevices = useMemo((): GatewayDevice[] => {
+    const regularGateways = (gateways || []).map(g => ({ ...g, deviceType: 'gateway' as const }));
+    const assistantGateways = (voiceAssistants || []).filter(va => va.isGateway).map(va => ({ ...va, deviceType: 'voice-assistant' as const }));
+    return [...regularGateways, ...assistantGateways];
+  }, [gateways, voiceAssistants]);
 
 
   const handleAddSensor = async (data: Omit<Sensor, "id" | "createdAt">) => {
@@ -59,17 +70,9 @@ export default function SensorCreatorApp() {
     setIsSavingSensor(true);
     try {
       await addSensor(db, data);
-      toast({
-        title: "Sukces!",
-        description: `Czujnik "${data.name}" został dodany.`,
-      });
+      toast({ title: "Sukces!", description: `Czujnik "${data.name}" został dodany.` });
     } catch (error) {
-      console.error("Error adding sensor: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się dodać czujnika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać czujnika." });
     } finally {
       setIsSavingSensor(false);
     }
@@ -80,18 +83,10 @@ export default function SensorCreatorApp() {
     setIsSavingSensor(true);
     try {
       await updateSensor(db, editingSensor.id, data);
-      toast({
-        title: "Sukces!",
-        description: `Czujnik "${data.name}" został zaktualizowany.`,
-      });
+      toast({ title: "Sukces!", description: `Czujnik "${data.name}" został zaktualizowany.` });
       setEditingSensor(null);
     } catch (error) {
-      console.error("Error updating sensor: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się zaktualizować czujnika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować czujnika." });
     } finally {
       setIsSavingSensor(false);
     }
@@ -101,17 +96,9 @@ export default function SensorCreatorApp() {
     if (!db) return;
     try {
       await deleteSensor(db, id);
-      toast({
-        title: "Sukces!",
-        description: "Czujnik został usunięty.",
-      });
+      toast({ title: "Sukces!", description: "Czujnik został usunięty." });
     } catch (error) {
-      console.error("Error deleting sensor: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się usunąć czujnika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć czujnika." });
     }
   };
   
@@ -120,17 +107,9 @@ export default function SensorCreatorApp() {
     setIsSavingSwitch(true);
     try {
       await addSwitch(db, data);
-      toast({
-        title: "Sukces!",
-        description: `Włącznik "${data.name}" został dodany.`,
-      });
+      toast({ title: "Sukces!", description: `Włącznik "${data.name}" został dodany.` });
     } catch (error) {
-      console.error("Error adding switch: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się dodać włącznika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać włącznika." });
     } finally {
       setIsSavingSwitch(false);
     }
@@ -141,18 +120,10 @@ export default function SensorCreatorApp() {
     setIsSavingSwitch(true);
     try {
       await updateSwitch(db, editingSwitch.id, data);
-      toast({
-        title: "Sukces!",
-        description: `Włącznik "${data.name}" został zaktualizowany.`,
-      });
+      toast({ title: "Sukces!", description: `Włącznik "${data.name}" został zaktualizowany.` });
       setEditingSwitch(null);
     } catch (error) {
-      console.error("Error updating switch: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się zaktualizować włącznika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować włącznika." });
     } finally {
       setIsSavingSwitch(false);
     }
@@ -162,17 +133,9 @@ export default function SensorCreatorApp() {
     if (!db) return;
     try {
       await deleteSwitch(db, id);
-      toast({
-        title: "Sukces!",
-        description: "Włącznik został usunięty.",
-      });
+      toast({ title: "Sukces!", description: "Włącznik został usunięty." });
     } catch (error) {
-      console.error("Error deleting switch: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się usunąć włącznika.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć włącznika." });
     }
   };
 
@@ -181,17 +144,9 @@ export default function SensorCreatorApp() {
     setIsSavingVoiceAssistant(true);
     try {
       await addVoiceAssistant(db, data);
-      toast({
-        title: "Sukces!",
-        description: `Asystent "${data.name}" został dodany.`,
-      });
+      toast({ title: "Sukces!", description: `Asystent "${data.name}" został dodany.` });
     } catch (error) {
-      console.error("Error adding voice assistant: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się dodać asystenta.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać asystenta." });
     } finally {
       setIsSavingVoiceAssistant(false);
     }
@@ -202,18 +157,10 @@ export default function SensorCreatorApp() {
     setIsSavingVoiceAssistant(true);
     try {
       await updateVoiceAssistant(db, editingVoiceAssistant.id, data);
-      toast({
-        title: "Sukces!",
-        description: `Asystent "${data.name}" został zaktualizowany.`,
-      });
+      toast({ title: "Sukces!", description: `Asystent "${data.name}" został zaktualizowany.` });
       setEditingVoiceAssistant(null);
     } catch (error) {
-      console.error("Error updating voice assistant: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się zaktualizować asystenta.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować asystenta." });
     } finally {
       setIsSavingVoiceAssistant(false);
     }
@@ -223,83 +170,110 @@ export default function SensorCreatorApp() {
     if (!db) return;
     try {
       await deleteVoiceAssistant(db, id);
-      toast({
-        title: "Sukces!",
-        description: "Asystent został usunięty.",
-      });
+      toast({ title: "Sukces!", description: "Asystent został usunięty." });
     } catch (error) {
-      console.error("Error deleting voice assistant: ", error);
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się usunąć asystenta.",
-      });
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć asystenta." });
     }
   };
 
+  const handleAddGateway = async (data: Omit<Gateway, "id" | "createdAt">) => {
+    if (!db) return;
+    setIsSavingGateway(true);
+    try {
+      await addGateway(db, data);
+      toast({ title: "Sukces!", description: `Bramka "${data.name}" została dodana.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać bramki." });
+    } finally {
+      setIsSavingGateway(false);
+    }
+  };
+
+  const handleUpdateGateway = async (data: Omit<Gateway, "id" | "createdAt">) => {
+    if (!db || !editingGateway) return;
+    setIsSavingGateway(true);
+    try {
+      await updateGateway(db, editingGateway.id, data);
+      toast({ title: "Sukces!", description: `Bramka "${data.name}" została zaktualizowana.` });
+      setEditingGateway(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować bramki." });
+    } finally {
+      setIsSavingGateway(false);
+    }
+  };
+
+  const handleDeleteGateway = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteGateway(db, id);
+      toast({ title: "Sukces!", description: "Bramka została usunięta." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć bramki." });
+    }
+  };
+
+  const handleEditDevice = (device: GatewayDevice) => {
+    if (device.deviceType === 'gateway') {
+      setEditingGateway(device);
+    } else {
+      setEditingVoiceAssistant(device);
+    }
+  };
+
+  const handleDeleteDevice = (id: string, type: 'gateway' | 'voice-assistant') => {
+    if (type === 'gateway') {
+      handleDeleteGateway(id);
+    } else {
+      handleDeleteVoiceAssistant(id);
+    }
+  };
+
+
   const renderContent = () => {
     switch (activeView) {
-      case 'planner':
-        return <HousePlanner />;
-      case 'sensors':
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1">
-              <AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} />
-            </div>
-            <div className="lg:col-span-2">
-              {isLoadingSensors ? (
-                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-              ) : (
-                <SensorList
-                  sensors={sensors || []}
-                  onDeleteSensor={handleDeleteSensor}
-                  onEditSensor={(sensor) => setEditingSensor(sensor)}
-                />
-              )}
-            </div>
+      case 'planner': return <HousePlanner />;
+      case 'sensors': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingSensors ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <SensorList sensors={sensors || []} onDeleteSensor={handleDeleteSensor} onEditSensor={setEditingSensor} />
+            )}
           </div>
-        );
-      case 'switches':
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1">
-              <AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} />
-            </div>
-            <div className="lg:col-span-2">
-              {isLoadingSwitches ? (
-                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-              ) : (
-                <SwitchList
-                  switches={switches || []}
-                  onDeleteSwitch={handleDeleteSwitch}
-                  onEditSwitch={(switchItem) => setEditingSwitch(switchItem)}
-                />
-              )}
-            </div>
+        </div>
+      );
+      case 'switches': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingSwitches ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <SwitchList switches={switches || []} onDeleteSwitch={handleDeleteSwitch} onEditSwitch={setEditingSwitch} />
+            )}
           </div>
-        );
-      case 'voice-assistants':
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1">
-              <AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} />
-            </div>
-            <div className="lg:col-span-2">
-              {isLoadingVoiceAssistants ? (
-                <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-              ) : (
-                <VoiceAssistantList
-                  assistants={voiceAssistants || []}
-                  onDeleteAssistant={handleDeleteVoiceAssistant}
-                  onEditAssistant={(assistant) => setEditingVoiceAssistant(assistant)}
-                />
-              )}
-            </div>
+        </div>
+      );
+      case 'voice-assistants': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <VoiceAssistantList assistants={voiceAssistants || []} onDeleteAssistant={handleDeleteVoiceAssistant} onEditAssistant={setEditingVoiceAssistant} />
+            )}
           </div>
-        );
-      default:
-        return null;
+        </div>
+      );
+      case 'gateways': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddGatewayForm onSubmit={handleAddGateway} isSaving={isSavingGateway} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingGateways || isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <GatewayList devices={gatewayDevices} onDeleteDevice={handleDeleteDevice} onEditDevice={handleEditDevice} />
+            )}
+          </div>
+        </div>
+      );
+      default: return null;
     }
   };
 
@@ -329,6 +303,10 @@ export default function SensorCreatorApp() {
                     <Mic className="mr-2 h-4 w-4" />
                     {t.voiceAssistants}
                 </Button>
+                <Button variant={activeView === 'gateways' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('gateways')} className="w-32">
+                    <Router className="mr-2 h-4 w-4" />
+                    {t.gateways}
+                </Button>
             </nav>
             
             <div className="flex flex-1 items-center justify-end space-x-4">
@@ -340,12 +318,8 @@ export default function SensorCreatorApp() {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setLocale('en')} disabled={locale === 'en'}>
-                    {t.english}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setLocale('pl')} disabled={locale === 'pl'}>
-                    {t.polish}
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocale('en')} disabled={locale === 'en'}>{t.english}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocale('pl')} disabled={locale === 'pl'}>{t.polish}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -358,41 +332,27 @@ export default function SensorCreatorApp() {
 
       <Dialog open={!!editingSensor} onOpenChange={(isOpen) => !isOpen && setEditingSensor(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {editingSensor && (
-            <AddSensorForm
-              initialData={editingSensor}
-              onSubmit={handleUpdateSensor}
-              isSaving={isSavingSensor}
-            />
-          )}
+          {editingSensor && <AddSensorForm initialData={editingSensor} onSubmit={handleUpdateSensor} isSaving={isSavingSensor}/>}
         </DialogContent>
       </Dialog>
       
       <Dialog open={!!editingSwitch} onOpenChange={(isOpen) => !isOpen && setEditingSwitch(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {editingSwitch && (
-            <AddSwitchForm
-              initialData={editingSwitch}
-              onSubmit={handleUpdateSwitch}
-              isSaving={isSavingSwitch}
-            />
-          )}
+          {editingSwitch && <AddSwitchForm initialData={editingSwitch} onSubmit={handleUpdateSwitch} isSaving={isSavingSwitch}/>}
         </DialogContent>
       </Dialog>
       
       <Dialog open={!!editingVoiceAssistant} onOpenChange={(isOpen) => !isOpen && setEditingVoiceAssistant(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {editingVoiceAssistant && (
-            <AddVoiceAssistantForm
-              initialData={editingVoiceAssistant}
-              onSubmit={handleUpdateVoiceAssistant}
-              isSaving={isSavingVoiceAssistant}
-            />
-          )}
+          {editingVoiceAssistant && <AddVoiceAssistantForm initialData={editingVoiceAssistant} onSubmit={handleUpdateVoiceAssistant} isSaving={isSavingVoiceAssistant}/>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingGateway} onOpenChange={(isOpen) => !isOpen && setEditingGateway(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingGateway && <AddGatewayForm initialData={editingGateway} onSubmit={handleUpdateGateway} isSaving={isSavingGateway}/>}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
-    

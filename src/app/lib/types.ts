@@ -8,6 +8,7 @@ export interface Specification {
 }
 
 export type Connectivity = 'matter' | 'zigbee' | 'tuya' | 'other_app' | 'bluetooth';
+export type GatewayConnectivity = 'matter' | 'zigbee' | 'bluetooth';
 
 export interface Sensor {
   id: string; // Document ID from firestore
@@ -47,6 +48,23 @@ export interface VoiceAssistant {
   link?: string;
   price: number;
   priceEvaluation: 'good' | 'medium' | 'bad';
+  homeAssistantCompatibility: number;
+  score: number;
+  tags: string[];
+  specs: Specification[];
+  isGateway?: boolean;
+  gatewayProtocols?: GatewayConnectivity[];
+  createdAt?: Timestamp;
+}
+
+export interface Gateway {
+  id: string; // Document ID from firestore
+  name: string;
+  brand: string;
+  link?: string;
+  price: number;
+  priceEvaluation: 'good' | 'medium' | 'bad';
+  connectivity: GatewayConnectivity[];
   homeAssistantCompatibility: number;
   score: number;
   tags: string[];

@@ -303,6 +303,22 @@
           },
           "description": "A list of technical specifications for the voice assistant."
         },
+        "isGateway": {
+          "type": "boolean",
+          "description": "Whether the voice assistant also functions as a smart home gateway."
+        },
+        "gatewayProtocols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "matter",
+              "zigbee",
+              "bluetooth"
+            ]
+          },
+          "description": "The connectivity protocols supported by the gateway functionality."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -314,6 +330,115 @@
         "brand",
         "price",
         "priceEvaluation",
+        "homeAssistantCompatibility",
+        "score",
+        "tags",
+        "specs",
+        "createdAt"
+      ]
+    },
+    "Gateway": {
+      "title": "Gateway",
+      "type": "object",
+      "description": "Represents a user-created gateway with technical specifications.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the gateway."
+        },
+        "brand": {
+          "type": "string",
+          "description": "The brand of the gateway."
+        },
+        "link": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL link to the gateway's product page."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the gateway."
+        },
+        "priceEvaluation": {
+          "type": "string",
+          "enum": [
+            "good",
+            "medium",
+            "bad"
+          ],
+          "description": "The evaluation of the gateway's price."
+        },
+        "connectivity": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "matter",
+              "zigbee",
+              "bluetooth"
+            ]
+          },
+          "description": "The connectivity protocols of the gateway."
+        },
+        "homeAssistantCompatibility": {
+          "type": "number",
+          "description": "Compatibility score with Home Assistant from 1 to 5."
+        },
+        "score": {
+          "type": "number",
+          "description": "The calculated score of the gateway from 1 to 10."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of tags associated with the gateway."
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "evaluation": {
+                "type": "string",
+                "enum": [
+                  "good",
+                  "medium",
+                  "bad"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "value",
+              "evaluation"
+            ]
+          },
+          "description": "A list of technical specifications for the gateway."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the gateway was created."
+        }
+      },
+      "required": [
+        "name",
+        "brand",
+        "price",
+        "priceEvaluation",
+        "connectivity",
         "homeAssistantCompatibility",
         "score",
         "tags",
@@ -398,6 +523,12 @@
         "$ref": "#/entities/VoiceAssistant"
       },
       "description": "Collection to store all user-created voice assistants."
+    },
+    "gateways": {
+      "schema": {
+        "$ref": "#/entities/Gateway"
+      },
+      "description": "Collection to store all user-created gateways."
     },
     "floors": {
       "schema": {

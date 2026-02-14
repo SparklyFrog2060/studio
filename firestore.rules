@@ -10,6 +10,9 @@ service cloud.firestore {
     match /voice_assistants/{assistantId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /gateways/{gatewayId} {
+      allow read, write: if true; // Allow all reads and writes for now
+    }
     match /floors/{floorId} {
       allow read, write: if true; // Allow all reads and writes for now
     }

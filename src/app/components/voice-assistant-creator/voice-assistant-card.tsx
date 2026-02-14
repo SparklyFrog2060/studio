@@ -9,7 +9,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon, Pencil, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
+import { Trash2, Gauge, CheckCircle, AlertTriangle, XCircle, Link as LinkIcon, Pencil, ShieldCheck, ShieldAlert, ShieldX, Router } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocale } from "@/app/components/locale-provider";
@@ -57,6 +57,7 @@ export default function VoiceAssistantCard({ assistant, onDelete, onEdit }: Voic
             {assistant.tags.map((tag) => (
               <Badge key={tag} variant="secondary">{tag}</Badge>
             ))}
+            {assistant.isGateway && <Badge variant="outline" className="border-blue-500 text-blue-500">{t.gateway}</Badge>}
           </div>
         </div>
         <div className="flex items-center">
@@ -110,6 +111,15 @@ export default function VoiceAssistantCard({ assistant, onDelete, onEdit }: Voic
                 <span className="font-semibold">{assistant.homeAssistantCompatibility}/5</span>
               </div>
           </div>
+          {assistant.isGateway && assistant.gatewayProtocols && assistant.gatewayProtocols.length > 0 && (
+             <div className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Router className="h-5 w-5 text-blue-500" />
+                <span>{t.gatewayProtocols}:</span>
+                <span className="font-semibold">{assistant.gatewayProtocols.join(', ')}</span>
+              </div>
+            </div>
+          )}
           {assistant.specs.map(spec => (
             <div key={spec.id} className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/40">
                 <div className="flex items-center gap-2">

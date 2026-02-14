@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { X, PlusCircle, Trash2, Gauge } from "lucide-react";
+import { X, PlusCircle, Trash2, Gauge, Router } from "lucide-react";
 import { useLocale } from "@/app/components/locale-provider";
-import type { VoiceAssistant, GatewayConnectivity } from "@/app/lib/types";
+import type { Gateway, GatewayConnectivity } from "@/app/lib/types";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const specSchema = z.object({
@@ -32,31 +31,30 @@ const formSchema = z.object({
   link: z.string().url("Niepoprawny URL.").optional().or(z.literal('')),
   price: z.coerce.number().min(0, "Cena nie może być ujemna."),
   priceEvaluation: z.enum(["good", "medium", "bad"]),
+  connectivity: z.array(z.string()).min(1, "Wybierz co najmniej jedną opcję łączności."),
   homeAssistantCompatibility: z.coerce.number().min(1).max(5),
   tags: z.array(z.string()),
   specs: z.array(specSchema),
-  isGateway: z.boolean().optional(),
-  gatewayProtocols: z.array(z.string()).optional(),
 });
 
-type AssistantFormData = z.infer<typeof formSchema>;
+type GatewayFormData = z.infer<typeof formSchema>;
 
-interface AddVoiceAssistantFormProps {
-  onSubmit: (data: Omit<VoiceAssistant, "id" | "createdAt">) => void;
+interface AddGatewayFormProps {
+  onSubmit: (data: Omit<Gateway, "id" | "createdAt">) => void;
   isSaving: boolean;
-  initialData?: VoiceAssistant;
+  initialData?: Gateway;
 }
 
-const PREDEFINED_TAGS = ["Muzyka", "Pogoda", "Wiadomości", "Sterowanie domem"];
-const GATEWAY_PROTOCOLS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth"];
+const PREDEFINED_TAGS = ["Centrala", "Mostek"];
+const CONNECTIVITY_OPTIONS: GatewayConnectivity[] = ["matter", "zigbee", "bluetooth"];
 
-export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData }: AddVoiceAssistantFormProps) {
+export default function AddGatewayForm({ onSubmit, isSaving, initialData }: AddGatewayFormProps) {
   const { t } = useLocale();
   const [tagInput, setTagInput] = useState("");
   const [score, setScore] = useState(initialData?.score || 0);
   const isEditMode = !!initialData;
 
-  const form = useForm<AssistantFormData>({
+  const form = useForm<GatewayFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       name: "",
@@ -64,11 +62,10 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
       link: "",
       price: 0,
       priceEvaluation: "medium",
+      connectivity: [],
       homeAssistantCompatibility: 5,
       tags: [],
       specs: [],
-      isGateway: false,
-      gatewayProtocols: [],
     },
   });
 
@@ -86,38 +83,33 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
   
   const specs = form.watch("specs");
   const priceEvaluation = form.watch("priceEvaluation");
+  const connectivity = form.watch("connectivity");
   const haCompatibility = form.watch("homeAssistantCompatibility");
-  const isGateway = form.watch("isGateway");
-  const gatewayProtocols = form.watch("gatewayProtocols");
 
   useEffect(() => {
     const evaluationToPoints = (evaluation: 'good' | 'medium' | 'bad'): number => {
       if (evaluation === 'good') return 10;
       if (evaluation === 'medium') return 5;
-      return 0; // for 'bad'
+      return 0;
     };
 
     const specPoints = specs.map(spec => evaluationToPoints(spec.evaluation));
     const pricePoints = evaluationToPoints(priceEvaluation);
     const haCompatibilityPoints = (haCompatibility - 1) * 2.5;
+    const connectivityPoints = connectivity.length > 0 ? Math.min(connectivity.length * 3.4, 10) : 0;
 
     const allPoints = [
         ...specPoints,
         pricePoints,
+        connectivityPoints,
         haCompatibilityPoints
     ];
     
-    if (isGateway && gatewayProtocols) {
-        const gatewayProtocolsPoints = gatewayProtocols.length > 0 ? Math.min(gatewayProtocols.length * 3.4, 10) : 0;
-        allPoints.push(gatewayProtocolsPoints);
-    }
-
     const totalPoints = allPoints.reduce((sum, p) => sum + p, 0);
     const calculatedScore = allPoints.length > 0 ? totalPoints / allPoints.length : 0;
     
     setScore(Math.round(calculatedScore * 10) / 10);
-  }, [specs, priceEvaluation, haCompatibility, isGateway, gatewayProtocols]);
-
+  }, [specs, priceEvaluation, connectivity, haCompatibility]);
 
   const handleAddTag = (tag: string) => {
     const newTag = tag.trim();
@@ -128,23 +120,20 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    form.setValue(
-      "tags",
-      form.getValues("tags").filter((tag) => tag !== tagToRemove)
-    );
+    form.setValue("tags", form.getValues("tags").filter((tag) => tag !== tagToRemove));
   };
   
-  const handleFormSubmit = (data: AssistantFormData) => {
-    onSubmit({ ...data, score });
+  const handleFormSubmit = (data: GatewayFormData) => {
+    onSubmit({ ...data, score, connectivity: data.connectivity as GatewayConnectivity[] });
     if (!isEditMode) {
-        form.reset();
+      form.reset();
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{isEditMode ? t.editVoiceAssistant : t.addVoiceAssistant}</CardTitle>
+        <CardTitle>{isEditMode ? t.editGateway : t.addGateway}</CardTitle>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)}>
@@ -155,9 +144,9 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t.voiceAssistantName}</FormLabel>
+                    <FormLabel>{t.gatewayName}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t.voiceAssistantNamePlaceholder} {...field} />
+                      <Input placeholder={t.gatewayNamePlaceholder} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -217,21 +206,15 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                           className="flex space-x-4 items-center h-full"
                         >
                           <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="good" />
-                            </FormControl>
+                            <FormControl><RadioGroupItem value="good" /></FormControl>
                             <FormLabel className="font-normal text-green-600">{t.good}</FormLabel>
                           </FormItem>
                           <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="medium" />
-                            </FormControl>
+                            <FormControl><RadioGroupItem value="medium" /></FormControl>
                             <FormLabel className="font-normal text-yellow-600">{t.medium}</FormLabel>
                           </FormItem>
                           <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="bad" />
-                            </FormControl>
+                            <FormControl><RadioGroupItem value="bad" /></FormControl>
                             <FormLabel className="font-normal text-red-600">{t.bad}</FormLabel>
                           </FormItem>
                         </RadioGroup>
@@ -242,6 +225,41 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
               </div>
             </div>
             
+            <FormField
+              control={form.control}
+              name="connectivity"
+              render={() => (
+                <FormItem>
+                  <FormLabel>{t.connectivity}</FormLabel>
+                  <div className="flex flex-wrap gap-4">
+                    {CONNECTIVITY_OPTIONS.map((item) => (
+                      <FormField
+                        key={item}
+                        control={form.control}
+                        name="connectivity"
+                        render={({ field }) => (
+                          <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, item])
+                                    : field.onChange(field.value?.filter((value) => value !== item));
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal capitalize">{item}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="homeAssistantCompatibility"
@@ -261,58 +279,6 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="isGateway"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">{t.isGateway}</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {isGateway && (
-              <FormField
-                control={form.control}
-                name="gatewayProtocols"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>{t.gatewayProtocols}</FormLabel>
-                    <div className="flex flex-wrap gap-4">
-                      {GATEWAY_PROTOCOLS.map((protocol) => (
-                        <FormField
-                          key={protocol}
-                          control={form.control}
-                          name="gatewayProtocols"
-                          render={({ field }) => (
-                            <FormItem key={protocol} className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(protocol)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), protocol])
-                                      : field.onChange(field.value?.filter((value) => value !== protocol));
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal capitalize">{protocol}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <FormItem>
               <FormLabel>{t.tags}</FormLabel>
@@ -387,27 +353,17 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                         <FormItem className="space-y-3 mt-4">
                           <FormLabel>{t.evaluation}</FormLabel>
                           <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              className="flex space-x-4"
-                            >
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4">
                               <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="good" />
-                                </FormControl>
+                                <FormControl><RadioGroupItem value="good" /></FormControl>
                                 <FormLabel className="font-normal text-green-600">{t.good}</FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="medium" />
-                                </FormControl>
+                                <FormControl><RadioGroupItem value="medium" /></FormControl>
                                 <FormLabel className="font-normal text-yellow-600">{t.medium}</FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="bad" />
-                                </FormControl>
+                                <FormControl><RadioGroupItem value="bad" /></FormControl>
                                 <FormLabel className="font-normal text-red-600">{t.bad}</FormLabel>
                               </FormItem>
                             </RadioGroup>
@@ -422,13 +378,7 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                   </Card>
                 ))}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={() => append({ id: crypto.randomUUID(), name: '', value: '', evaluation: 'medium' })}
-              >
+              <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ id: crypto.randomUUID(), name: '', value: '', evaluation: 'medium' })}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {t.addSpec}
               </Button>
@@ -441,7 +391,7 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
                 <span className="text-2xl font-bold text-primary">{score.toFixed(1)}/10</span>
             </div>
             <Button type="submit" disabled={isSaving}>
-              {isEditMode ? t.saveChanges : t.saveVoiceAssistant}
+              {isEditMode ? t.saveChanges : t.saveGateway}
             </Button>
           </CardFooter>
         </form>
@@ -449,5 +399,3 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
     </Card>
   );
 }
-
-    
