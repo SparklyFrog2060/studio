@@ -27,9 +27,9 @@ export default function RoomCard({ room, onEditRoom, onDeleteRoom }: RoomCardPro
       </CardHeader>
       <CardFooter className="flex justify-between items-center">
         <div className="flex gap-3">
-          <Lightbulb className={hasSensors ? "text-yellow-400" : "text-muted-foreground"} />
-          <ToggleRight className={hasSwitches ? "text-green-500" : "text-muted-foreground"} />
-          <Mic className={hasAssistants ? "text-blue-500" : "text-muted-foreground"} />
+          <Lightbulb className={hasSensors ? "text-yellow-400" : "text-gray-400"} />
+          <ToggleRight className={hasSwitches ? "text-green-500" : "text-gray-400"} />
+          <Mic className={hasAssistants ? "text-blue-500" : "text-gray-400"} />
         </div>
         <div>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onEditRoom(room); }}>
