@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,12 @@ interface ShoppingListDialogProps {
 
 export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalPrice }: ShoppingListDialogProps) {
   const { t } = useLocale();
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    // Set date only on client-side after mount to avoid hydration mismatch
+    setCurrentDate(new Date().toLocaleDateString('pl-PL'));
+  }, []);
 
   const sensors = items.filter(item => item.type === 'Sensor');
   const switches = items.filter(item => item.type === 'Switch');
@@ -53,7 +60,7 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-mono tracking-widest uppercase">{t.shoppingList}</DialogTitle>
           <DialogDescription className="text-center font-mono">
-            {new Date().toLocaleDateString('pl-PL')}
+            {currentDate}
           </DialogDescription>
         </DialogHeader>
         <div className="font-mono my-4">
