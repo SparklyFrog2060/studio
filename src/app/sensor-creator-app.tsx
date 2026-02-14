@@ -31,6 +31,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog"
+import { ThemeSwitcher } from "./components/theme-switcher";
 
 type View = 'planner' | 'sensors' | 'switches' | 'voice-assistants' | 'gateways';
 type GatewayDevice = (Gateway & { deviceType: 'gateway' }) | (VoiceAssistant & { deviceType: 'voice-assistant' });
@@ -309,7 +310,8 @@ export default function SensorCreatorApp() {
                 </Button>
             </nav>
             
-            <div className="flex flex-1 items-center justify-end space-x-4">
+            <div className="flex flex-1 items-center justify-end space-x-2">
+                <ThemeSwitcher />
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon">

@@ -97,6 +97,10 @@ export const locales = {
     availableVoiceAssistants: "Available Voice Assistants",
     shoppingList: "Shopping List",
     total: "Total",
+    theme: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
   },
   pl: {
     appName: "Kreator Urządzeń",
@@ -197,6 +201,10 @@ export const locales = {
     availableVoiceAssistants: "Dostępni Asystenci Głosowi",
     shoppingList: "Lista Zakupów",
     total: "Suma",
+    theme: "Motyw",
+    light: "Jasny",
+    dark: "Ciemny",
+    system: "Systemowy",
   },
 };
 
