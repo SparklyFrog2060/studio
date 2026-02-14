@@ -1,5 +1,5 @@
-import SmartSpacePlannerApp from './smart-space-planner-app';
+import SensorCreatorApp from './sensor-creator-app';
 
 export default function Home() {
-  return <SmartSpacePlannerApp />;
+  return <SensorCreatorApp />;
 }

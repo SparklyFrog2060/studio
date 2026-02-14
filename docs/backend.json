@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Sensor": {
+      "title": "Sensor",
+      "description": "Represents a smart home sensor.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the sensor."
+        },
+        "score": {
+          "type": "number",
+          "description": "Calculated score from 1-10."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Functional tags for the sensor."
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/backend/entities/Specification"
+          },
+          "description": "Technical specifications of the sensor."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Specification": {
+      "title": "Specification",
+      "description": "A single technical specification for a sensor.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evaluation": {
+          "type": "string",
+          "enum": [
+            "good",
+            "medium",
+            "bad"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "value",
+        "evaluation"
+      ]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/sensors/{sensorId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Sensor"
+      },
+      "description": "Stores all the created sensors."
+    }
+  }
+}

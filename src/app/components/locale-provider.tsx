@@ -6,13 +6,13 @@ import { locales, type Locale } from '@/app/lib/locales';
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: typeof locales['en'];
+  t: typeof locales['pl'];
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<Locale>('en');
+  const [locale, setLocale] = useState<Locale>('pl');
 
   const t = useMemo(() => locales[locale], [locale]);
 

@@ -1,19 +1,17 @@
-import type { LucideIcon } from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
 
-export interface Product {
+export interface Specification {
   id: string;
   name: string;
-  price: number;
-  icon: LucideIcon;
-  category: string;
+  value: string;
+  evaluation: 'good' | 'medium' | 'bad';
 }
 
-export interface RoomProduct extends Product {
-  instanceId: string;
-}
-
-export interface Room {
-  id: string;
+export interface Sensor {
+  id: string; // Document ID from firestore
   name: string;
-  products: RoomProduct[];
+  score: number;
+  tags: string[];
+  specs: Specification[];
+  createdAt?: Timestamp;
 }
