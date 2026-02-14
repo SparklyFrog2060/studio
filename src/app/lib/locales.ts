@@ -134,6 +134,10 @@ export const locales = {
     light: "Light",
     dark: "Dark",
     system: "System",
+    mapView: "Map View",
+    listView: "List View",
+    tuyaCloud: "Tuya Cloud",
+    localIntegration: "Local Integration",
   },
   pl: {
     appName: "Kreator Urządzeń",
@@ -270,9 +274,11 @@ export const locales = {
     light: "Jasny",
     dark: "Ciemny",
     system: "Systemowy",
+    mapView: "Widok Mapy",
+    listView: "Widok Listy",
+    tuyaCloud: "Chmura Tuya",
+    localIntegration: "Lokalna Integracja",
   },
 };
 
 export type Locale = keyof typeof locales;
-
-    
