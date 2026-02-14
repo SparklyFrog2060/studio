@@ -82,28 +82,27 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
   const haCompatibility = form.watch("homeAssistantCompatibility");
 
   useEffect(() => {
-    const totalSpecPoints = specs.reduce((sum, spec) => {
-      if (spec.evaluation === "good") return sum + 3;
-      if (spec.evaluation === "medium") return sum + 2;
-      if (spec.evaluation === "bad") return sum + 1;
-      return sum;
-    }, 0);
+    const evaluationToPoints = (evaluation: 'good' | 'medium' | 'bad'): number => {
+      if (evaluation === 'good') return 10;
+      if (evaluation === 'medium') return 5;
+      return 0; // for 'bad'
+    };
 
-    let pricePoints = 0;
-    if (priceEvaluation === "good") pricePoints = 3;
-    if (priceEvaluation === "medium") pricePoints = 2;
-    if (priceEvaluation === "bad") pricePoints = 1;
+    const specPoints = specs.map(spec => evaluationToPoints(spec.evaluation));
+    
+    const pricePoints = evaluationToPoints(priceEvaluation);
+    
+    const haCompatibilityPoints = (haCompatibility - 1) * 2.5;
 
-    let compatibilityPoints = 0;
-    if (haCompatibility >= 5) compatibilityPoints = 3;
-    else if (haCompatibility === 4) compatibilityPoints = 2.5;
-    else if (haCompatibility === 3) compatibilityPoints = 2;
-    else if (haCompatibility === 2) compatibilityPoints = 1;
-    else if (haCompatibility === 1) compatibilityPoints = 0;
-
-    const totalPoints = totalSpecPoints + pricePoints + compatibilityPoints;
-    const maxPoints = specs.length * 3 + 3 + 3;
-    const calculatedScore = maxPoints > 0 ? (totalPoints / maxPoints) * 10 : 0;
+    const allPoints = [
+        ...specPoints,
+        pricePoints,
+        haCompatibilityPoints
+    ];
+    
+    const totalPoints = allPoints.reduce((sum, p) => sum + p, 0);
+    const calculatedScore = allPoints.length > 0 ? totalPoints / allPoints.length : 0;
+    
     setScore(Math.round(calculatedScore * 10) / 10);
   }, [specs, priceEvaluation, haCompatibility]);
 
@@ -386,3 +385,5 @@ export default function AddVoiceAssistantForm({ onSubmit, isSaving, initialData 
     </Card>
   );
 }
+
+    
