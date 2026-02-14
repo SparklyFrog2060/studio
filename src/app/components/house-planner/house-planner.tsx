@@ -15,6 +15,7 @@ import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
 import FloorSection from "./floor-section";
 import ShoppingListDialog from "./shopping-list-dialog";
+import ActiveGateways from "./active-gateways";
 
 interface ShoppingListItem {
   name: string;
@@ -197,6 +198,8 @@ export default function HousePlanner() {
         </div>
       </div>
 
+      <ActiveGateways gateways={gateways || []} voiceAssistants={voiceAssistants || []} />
+
       {isLoading ? (
         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
       ) : floors && floors.length > 0 ? (
@@ -267,5 +270,3 @@ export default function HousePlanner() {
     </div>
   );
 }
-
-    

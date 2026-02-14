@@ -1,3 +1,4 @@
+
 export const locales = {
   en: {
     appName: "Device Creator",
@@ -125,6 +126,7 @@ export const locales = {
     availableVoiceAssistants: "Available Voice Assistants",
     shoppingList: "Shopping List",
     total: "Total",
+    activeGateways: "Active Gateways",
     theme: "Theme",
     light: "Light",
     dark: "Dark",
@@ -257,6 +259,7 @@ export const locales = {
     availableVoiceAssistants: "Dostępni Asystenci Głosowi",
     shoppingList: "Lista Zakupów",
     total: "Suma",
+    activeGateways: "Aktywne Bramki",
     theme: "Motyw",
     light: "Jasny",
     dark: "Ciemny",
@@ -265,5 +268,3 @@ export const locales = {
 };
 
 export type Locale = keyof typeof locales;
-
-    
