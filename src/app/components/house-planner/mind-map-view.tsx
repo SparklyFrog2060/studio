@@ -46,8 +46,11 @@ const PROTOCOL_COLORS: Record<string, string> = {
   bluetooth: 'hsl(var(--chart-5))',
 };
 
-const getDeviceProtocol = (device: { connectivity?: Connectivity }): Connectivity | undefined => {
-    return device.connectivity;
+const getDeviceProtocol = (device: { connectivity?: Connectivity | GatewayConnectivity[] }): Connectivity | undefined => {
+    if (typeof device.connectivity === 'string') {
+        return device.connectivity;
+    }
+    return undefined;
 }
 
 export default function MindMapView({ floors, rooms, sensors, switches, lighting, otherDevices, voiceAssistants, activeGateways }: MindMapViewProps) {
@@ -126,15 +129,15 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     const nodes: UnifiedGatewayNode[] = [...gatewayNodes];
 
     const allAssignedDevices = rooms.flatMap(room => [
-        ...room.sensorIds.map(id => sensors.find(d => d.id === id)),
-        ...room.switchIds.map(id => switches.find(d => d.id === id)),
-        ...room.lightingIds.map(id => lighting.find(d => d.id === id)),
-        ...room.otherDeviceIds.map(id => otherDevices.find(d => d.id === id)),
+        ...(room.sensorIds || []).map(id => sensors.find(d => d.id === id)),
+        ...(room.switchIds || []).map(id => switches.find(d => d.id === id)),
+        ...(room.lightingIds || []).map(id => lighting.find(d => d.id === id)),
+        ...(room.otherDeviceIds || []).map(id => otherDevices.find(d => d.id === id)),
     ]).filter((d): d is Sensor | Switch | Lighting | OtherDevice => !!d);
 
     const neededHardcodedProtocols = new Set<string>();
     allAssignedDevices.forEach(device => {
-        if (['tuya', 'other_app', 'bluetooth'].includes(device.connectivity)) {
+        if (device && ['tuya', 'other_app', 'bluetooth'].includes(device.connectivity)) {
             neededHardcodedProtocols.add(device.connectivity);
         }
     });
@@ -157,14 +160,18 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
 
     const newLines: Line[] = [];
 
-    const devicesInRooms = rooms.flatMap(room =>
-        [...room.sensorIds, ...room.switchIds, ...room.lightingIds, ...room.otherDeviceIds]
-        .map(id => allDevicesMap.get(id))
-        .filter((d): d is (Sensor | Switch | Lighting | OtherDevice) & { type: string } => !!d)
-    );
+    const uniqueDeviceIds = new Set(rooms.flatMap(room => [
+        ...(room.sensorIds || []),
+        ...(room.switchIds || []),
+        ...(room.lightingIds || []),
+        ...(room.otherDeviceIds || []),
+    ]));
 
-    devicesInRooms.forEach(device => {
-        const protocol = getDeviceProtocol(device);
+    uniqueDeviceIds.forEach(deviceId => {
+        const device = allDevicesMap.get(deviceId);
+        if (!device) return;
+
+        const protocol = getDeviceProtocol(device as any);
         if (!protocol) return;
 
         let targetNodeId: string | undefined;
@@ -188,6 +195,7 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
             });
         }
     });
+
 
     midLevelNodes.forEach(node => {
         newLines.push({
@@ -249,29 +257,42 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
                             <CardTitle>{floor.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-2 flex flex-wrap gap-4 justify-center">
-                            {rooms.filter(r => r.floorId === floor.id).map(room => (
+                            {rooms.filter(r => r.floorId === floor.id).map(room => {
+                                const deviceCounts = new Map<string, number>();
+                                const allDeviceIdsInRoom = [
+                                    ...(room.sensorIds || []),
+                                    ...(room.switchIds || []),
+                                    ...(room.lightingIds || []),
+                                    ...(room.otherDeviceIds || []),
+                                    ...(room.voiceAssistantIds || []),
+                                ].filter(id => !activeGatewayIds.has(id));
+
+                                for (const id of allDeviceIdsInRoom) {
+                                    deviceCounts.set(id, (deviceCounts.get(id) || 0) + 1);
+                                }
+
+                                return (
                                 <Card key={room.id} className="p-3 min-w-[200px] bg-background">
                                     <CardHeader className="p-1">
                                         <CardTitle className="text-base">{room.name}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-1 flex flex-col gap-2 mt-2">
-                                        {[...room.sensorIds, ...room.switchIds, ...room.lightingIds, ...room.otherDeviceIds, ...room.voiceAssistantIds]
-                                        .filter(deviceId => !activeGatewayIds.has(deviceId))
-                                        .map(deviceId => {
+                                        {Array.from(deviceCounts.entries()).map(([deviceId, count]) => {
                                             const device = allDevicesMap.get(deviceId);
                                             if (!device) return null;
                                             const protocol = getDeviceProtocol(device as any);
                                             return (
-                                                <div key={device.id} ref={el => nodeRefs.current[device.id] = el} className="flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs">
+                                                <div key={deviceId} ref={el => { if (el) nodeRefs.current[deviceId] = el; }} className="flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs">
                                                     {renderDeviceIcon(device.type)}
                                                     <span className="flex-1">{device.name}</span>
+                                                    {count > 1 && <span className="font-bold text-muted-foreground">x{count}</span>}
                                                     {protocol && <Badge variant="outline" style={{borderColor: PROTOCOL_COLORS[protocol]}} className="text-xs capitalize">{protocol}</Badge>}
                                                 </div>
                                             )
                                         })}
                                     </CardContent>
                                 </Card>
-                            ))}
+                            )})}
                         </CardContent>
                     </Card>
                 ))}
@@ -280,3 +301,5 @@ export default function MindMapView({ floors, rooms, sensors, switches, lighting
     </div>
   );
 }
+
+    
