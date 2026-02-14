@@ -41,6 +41,22 @@ export interface Switch {
   createdAt?: Timestamp;
 }
 
+export interface Lighting {
+  id: string; // Document ID from firestore
+  name: string;
+  type: 'bulb' | 'lamp' | 'led_strip' | 'other';
+  brand: string;
+  link?: string;
+  price: number;
+  priceEvaluation: 'good' | 'medium' | 'bad';
+  connectivity: Connectivity;
+  homeAssistantCompatibility: number;
+  score: number;
+  tags: string[];
+  specs: Specification[];
+  createdAt?: Timestamp;
+}
+
 export interface VoiceAssistant {
   id: string; // Document ID from firestore
   name: string;

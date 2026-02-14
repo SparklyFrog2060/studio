@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { useCollection, useFirestore } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
+import { addLighting, deleteLighting, updateLighting } from "@/lib/firebase/lighting";
 import { addVoiceAssistant, deleteVoiceAssistant, updateVoiceAssistant } from "@/lib/firebase/voice-assistants";
 import { addGateway, deleteGateway, updateGateway } from "@/lib/firebase/gateways";
 import { useToast } from "@/hooks/use-toast";
@@ -12,12 +13,14 @@ import AddSensorForm from "./components/sensor-creator/add-sensor-form";
 import SensorList from "./components/sensor-creator/sensor-list";
 import AddSwitchForm from "./components/switch-creator/add-switch-form";
 import SwitchList from "./components/switch-creator/switch-list";
+import AddLightingForm from "./components/lighting-creator/add-lighting-form";
+import LightingList from "./components/lighting-creator/lighting-list";
 import AddVoiceAssistantForm from "./components/voice-assistant-creator/add-voice-assistant-form";
 import VoiceAssistantList from "./components/voice-assistant-creator/voice-assistant-list";
 import AddGatewayForm from "./components/gateway-creator/add-gateway-form";
 import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
-import type { Sensor, Switch, VoiceAssistant, Gateway } from "./lib/types";
+import type { Sensor, Switch, Lighting, VoiceAssistant, Gateway } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
 import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu, Lightbulb, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -52,6 +55,10 @@ export default function SensorCreatorApp() {
   const { data: switches, isLoading: isLoadingSwitches } = useCollection<Switch>(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSwitch, setIsSavingSwitch] = useState(false);
   const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
+
+  const { data: lighting, isLoading: isLoadingLighting } = useCollection<Lighting>(db ? "lighting" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const [isSavingLighting, setIsSavingLighting] = useState(false);
+  const [editingLighting, setEditingLighting] = useState<Lighting | null>(null);
 
   const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
@@ -143,6 +150,43 @@ export default function SensorCreatorApp() {
       toast({ title: "Sukces!", description: "Włącznik został usunięty." });
     } catch (error) {
       toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć włącznika." });
+    }
+  };
+
+  const handleAddLighting = async (data: Omit<Lighting, "id" | "createdAt">) => {
+    if (!db) return;
+    setIsSavingLighting(true);
+    try {
+      await addLighting(db, data);
+      toast({ title: "Sukces!", description: `Oświetlenie "${data.name}" zostało dodane.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać oświetlenia." });
+    } finally {
+      setIsSavingLighting(false);
+    }
+  };
+
+  const handleUpdateLighting = async (data: Omit<Lighting, "id" | "createdAt">) => {
+    if (!db || !editingLighting) return;
+    setIsSavingLighting(true);
+    try {
+      await updateLighting(db, editingLighting.id, data);
+      toast({ title: "Sukces!", description: `Oświetlenie "${data.name}" zostało zaktualizowane.` });
+      setEditingLighting(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować oświetlenia." });
+    } finally {
+      setIsSavingLighting(false);
+    }
+  };
+
+  const handleDeleteLighting = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteLighting(db, id);
+      toast({ title: "Sukces!", description: "Oświetlenie zostało usunięte." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się usunąć oświetlenia." });
     }
   };
 
@@ -264,7 +308,16 @@ export default function SensorCreatorApp() {
           </div>
         </div>
       );
-      case 'lighting': return <div className="text-center text-muted-foreground mt-20">{t.wip}</div>;
+      case 'lighting': return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1"><AddLightingForm onSubmit={handleAddLighting} isSaving={isSavingLighting} /></div>
+          <div className="lg:col-span-2">
+            {isLoadingLighting ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+              <LightingList lightingItems={lighting || []} onDeleteLighting={handleDeleteLighting} onEditLighting={setEditingLighting} />
+            )}
+          </div>
+        </div>
+      );
       case 'other-devices': return <div className="text-center text-muted-foreground mt-20">{t.wip}</div>;
       case 'voice-assistants': return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -403,6 +456,12 @@ export default function SensorCreatorApp() {
       <Dialog open={!!editingSwitch} onOpenChange={(isOpen) => !isOpen && setEditingSwitch(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {editingSwitch && <AddSwitchForm initialData={editingSwitch} onSubmit={handleUpdateSwitch} isSaving={isSavingSwitch}/>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingLighting} onOpenChange={(isOpen) => !isOpen && setEditingLighting(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {editingLighting && <AddLightingForm initialData={editingLighting} onSubmit={handleUpdateLighting} isSaving={isSavingLighting}/>}
         </DialogContent>
       </Dialog>
       

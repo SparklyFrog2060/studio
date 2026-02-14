@@ -13,6 +13,9 @@ service cloud.firestore {
     match /gateways/{gatewayId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
+    match /lighting/{lightingId} {
+      allow read, write: if true; // Allow all reads and writes for now
+    }
     match /floors/{floorId} {
       allow read, write: if true; // Allow all reads and writes for now
     }
