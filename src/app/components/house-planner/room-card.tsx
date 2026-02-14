@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ToggleRight, Mic, Pencil, Trash2, Coins } from "lucide-react";
+import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins } from "lucide-react";
 import type { Room, Sensor, Switch, VoiceAssistant } from "@/app/lib/types";
 import { useLocale } from "../locale-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -55,7 +55,7 @@ export default function RoomCard({ room, sensors, switches, voiceAssistants, onE
       </CardHeader>
       <CardFooter className="flex justify-between items-center pt-4">
         <div className="flex gap-3">
-          <Lightbulb className={hasSensors ? "text-yellow-400" : "text-gray-300"} />
+          <Thermometer className={hasSensors ? "text-yellow-400" : "text-gray-300"} />
           <ToggleRight className={hasSwitches ? "text-green-500" : "text-gray-300"} />
           <Mic className={hasAssistants ? "text-blue-500" : "text-gray-300"} />
         </div>
