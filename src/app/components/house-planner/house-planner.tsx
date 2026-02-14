@@ -71,7 +71,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     const checkProtocols = (devices: {id: string, connectivity: Connectivity}[], assignedIds: Set<string>) => {
       devices?.forEach(device => {
         if (assignedIds.has(device.id)) {
-          if (device.connectivity === 'zigbee' || device.connectivity === 'tuya') {
+          if (device.connectivity === 'zigbee' || device.connectivity === 'tuya' || device.connectivity === 'matter') {
             protocolSet.add(device.connectivity);
           }
         }
@@ -238,8 +238,8 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="flex w-full md:w-auto justify-between md:justify-start items-center gap-4">
             <div className="flex items-center gap-3">
                 <Wallet className="h-8 w-8 text-primary" />
                 <div>
@@ -252,7 +252,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
               {t.shoppingList}
             </Button>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto justify-end gap-2">
             <Button onClick={() => setIsAddFloorDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             {t.addFloor}
