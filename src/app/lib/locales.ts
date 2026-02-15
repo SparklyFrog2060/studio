@@ -1,3 +1,4 @@
+
 export const locales = {
   en: {
     appName: "Smart-Architekt",
@@ -155,6 +156,7 @@ export const locales = {
     plan: "Plan",
     selectFloor: "Select a floor to start planning",
     drawWall: "Draw Wall",
+    deleteWall: "Delete Wall",
     devices: "Devices",
     savePlan: "Save Plan",
     resetPlan: "Reset Plan",
@@ -317,6 +319,7 @@ export const locales = {
     plan: "Plan",
     selectFloor: "Wybierz piętro, aby rozpocząć planowanie",
     drawWall: "Rysuj Ścianę",
+    deleteWall: "Usuń Ścianę",
     devices: "Urządzenia",
     savePlan: "Zapisz Plan",
     resetPlan: "Resetuj Plan",

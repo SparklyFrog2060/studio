@@ -7,11 +7,11 @@ import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, CaseUpper } from 'lucide-react';
+import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, CaseUpper, Eraser } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
 
-type PlanMode = 'draw-wall' | 'draw-room' | 'place-device';
+type PlanMode = 'draw-wall' | 'draw-room' | 'place-device' | 'delete-wall';
 
 const DeviceIcon = ({ type, ...props }: { type: string } & React.ComponentProps<typeof Thermometer>) => {
     switch (type) {
@@ -62,8 +62,56 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         };
     };
 
+    const findClosestWall = (pos: { x: number, y: number }): Wall | null => {
+        let closestWall: Wall | null = null;
+        let minDistance = 15; // Click threshold of 15px
+
+        for (const wall of walls) {
+            const { start, end } = wall;
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            
+            if (dx === 0 && dy === 0) { // Wall is a point
+                const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestWall = wall;
+                }
+                continue;
+            }
+            
+            const t = ((pos.x - start.x) * dx + (pos.y - start.y) * dy) / (dx * dx + dy * dy);
+            
+            let closestPoint;
+            if (t < 0) {
+                closestPoint = start;
+            } else if (t > 1) {
+                closestPoint = end;
+            } else {
+                closestPoint = { x: start.x + t * dx, y: start.y + t * dy };
+            }
+            
+            const dist = Math.hypot(pos.x - closestPoint.x, pos.y - closestPoint.y);
+            
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestWall = wall;
+            }
+        }
+        return closestWall;
+    };
+
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
         const pos = getEventCoordinates(e);
+
+        if (mode === 'delete-wall') {
+            e.preventDefault();
+            const wallToDelete = findClosestWall(pos);
+            if (wallToDelete) {
+                setWalls(prev => prev.filter(w => w.id !== wallToDelete.id));
+            }
+            return;
+        }
 
         if (mode === 'place-device' && selectedDeviceForPlacing) {
             e.preventDefault();
@@ -101,7 +149,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         if (!isDrawing || !startPos) return;
         e.preventDefault();
         const pos = getEventCoordinates(e);
-        setCurrentShape({ id: currentShape!.id, start: startPos, end: pos });
+        setCurrentShape({ start: startPos, end: pos });
     };
 
     const handlePointerUp = () => {
@@ -222,6 +270,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant={mode === 'draw-wall' ? 'secondary' : 'outline'} onClick={() => setMode('draw-wall')}><PencilRuler className="mr-2"/> {t.drawWall}</Button>
                     <Button variant={mode === 'draw-room' ? 'secondary' : 'outline'} onClick={() => setMode('draw-room')}><CaseUpper className="mr-2"/> {t.defineRoom}</Button>
+                    <Button variant={mode === 'delete-wall' ? 'destructive' : 'outline'} onClick={() => setMode('delete-wall')}><Eraser className="mr-2"/> {t.deleteWall}</Button>
                     <Button onClick={handleSave} disabled={isSaving}>
                         <Save className="mr-2"/> {t.savePlan}
                     </Button>
@@ -244,7 +293,8 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                         "relative w-full h-full bg-muted/30 rounded-lg overflow-hidden",
                         mode === 'draw-wall' && 'cursor-crosshair',
                         mode === 'draw-room' && 'cursor-crosshair',
-                        mode === 'place-device' && 'cursor-copy'
+                        mode === 'place-device' && 'cursor-copy',
+                        mode === 'delete-wall' && 'cursor-pointer'
                     )}
                     style={{
                         touchAction: 'none',
