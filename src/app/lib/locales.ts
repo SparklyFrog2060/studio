@@ -1,4 +1,3 @@
-
 export const locales = {
   en: {
     appName: "Smart-Architekt",
@@ -159,6 +158,8 @@ export const locales = {
     devices: "Devices",
     savePlan: "Save Plan",
     resetPlan: "Reset Plan",
+    defineRoom: "Define Room",
+    nameYourRoom: "Name Your Room",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -319,6 +320,8 @@ export const locales = {
     devices: "Urządzenia",
     savePlan: "Zapisz Plan",
     resetPlan: "Resetuj Plan",
+    defineRoom: "Definiuj Pomieszczenie",
+    nameYourRoom: "Nazwij swoje pomieszczenie",
   },
 };
 

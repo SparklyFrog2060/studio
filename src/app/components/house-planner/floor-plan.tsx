@@ -2,13 +2,16 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import type { BaseDevice, Floor, Wall, PlacedDevice, FloorLayout } from '@/app/lib/types';
+import type { BaseDevice, Floor, Wall, FloorLayout, Room, RoomDevice } from '@/app/lib/types';
 import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw } from 'lucide-react';
+import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, CaseUpper } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
+
+type PlanMode = 'draw-wall' | 'draw-room' | 'place-device';
 
 const DeviceIcon = ({ type, ...props }: { type: string } & React.ComponentProps<typeof Thermometer>) => {
     switch (type) {
@@ -17,27 +20,32 @@ const DeviceIcon = ({ type, ...props }: { type: string } & React.ComponentProps<
         case 'lighting': return <Lightbulb {...props} />;
         case 'other-device': return <Box {...props} />;
         case 'voice-assistant': return <Mic {...props} />;
-        case 'gateway': return <Box {...props} />; // Placeholder for gateway
+        case 'gateway': return <Box {...props} />;
         default: return <Box {...props} />;
     }
 };
 
 interface FloorPlanProps {
     floor: Floor;
+    rooms: Room[];
     allDevicesMap: Map<string, BaseDevice & { type: string }>;
-    onSave: (floorId: string, layout: FloorLayout) => void;
+    onSaveLayout: (floorId: string, layout: FloorLayout) => void;
+    onAddRoom: (room: Omit<Room, 'id' | 'createdAt' | 'devices'>) => void;
+    onUpdateRoom: (roomId: string, data: Partial<Omit<Room, 'id'>>) => void;
     isSaving: boolean;
 }
 
-export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: FloorPlanProps) {
+export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, onAddRoom, onUpdateRoom, isSaving }: FloorPlanProps) {
     const { t } = useLocale();
     const canvasRef = useRef<HTMLDivElement>(null);
     const [walls, setWalls] = useState<Wall[]>(floor.layout?.walls || []);
-    const [placedDevices, setPlacedDevices] = useState<PlacedDevice[]>(floor.layout?.placedDevices || []);
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState<{ x: number, y: number } | null>(null);
-    const [currentWall, setCurrentWall] = useState<Wall | null>(null);
+    const [currentShape, setCurrentShape] = useState<{ start: {x:number, y:number}, end: {x:number, y:number} } | null>(null);
     const [selectedDeviceForPlacing, setSelectedDeviceForPlacing] = useState<string | null>(null);
+    const [mode, setMode] = useState<PlanMode>('draw-wall');
+    const [isNamingRoom, setIsNamingRoom] = useState(false);
+    const [newRoomBounds, setNewRoomBounds] = useState<{x:number,y:number,width:number,height:number} | null>(null);
 
     const getEventCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
@@ -57,49 +65,83 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
         const pos = getEventCoordinates(e);
 
-        if (selectedDeviceForPlacing) {
+        if (mode === 'place-device' && selectedDeviceForPlacing) {
             e.preventDefault();
-            const newDevice: PlacedDevice = {
-                instanceId: crypto.randomUUID(),
-                deviceId: selectedDeviceForPlacing,
-                x: pos.x,
-                y: pos.y,
-            };
-            setPlacedDevices(prev => [...prev, newDevice]);
+            const targetRoom = rooms.find(r => r.bounds && pos.x >= r.bounds.x && pos.x <= r.bounds.x + r.bounds.width && pos.y >= r.bounds.y && pos.y <= r.bounds.y + r.bounds.height);
+            
+            if (targetRoom) {
+                const baseDevice = allDevicesMap.get(selectedDeviceForPlacing);
+                if (!baseDevice) return;
+                
+                const newDevice: RoomDevice = {
+                    instanceId: crypto.randomUUID(),
+                    deviceId: selectedDeviceForPlacing,
+                    customName: baseDevice.name,
+                    isOwned: false,
+                    x: pos.x,
+                    y: pos.y,
+                };
+
+                const updatedDevices = [...(targetRoom.devices || []), newDevice];
+                onUpdateRoom(targetRoom.id, { devices: updatedDevices });
+            }
+
             setSelectedDeviceForPlacing(null);
+            setMode('draw-wall');
             return;
         }
 
         e.preventDefault();
         setIsDrawing(true);
         setStartPos(pos);
-        setCurrentWall({ id: `wall-${Date.now()}`, start: pos, end: pos });
+        setCurrentShape({ start: pos, end: pos });
     };
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!isDrawing || !startPos) return;
         e.preventDefault();
         const pos = getEventCoordinates(e);
-        setCurrentWall({ id: currentWall!.id, start: startPos, end: pos });
+        setCurrentShape({ id: currentShape!.id, start: startPos, end: pos });
     };
 
     const handlePointerUp = () => {
-        if (isDrawing && currentWall) {
-            const { start, end } = currentWall;
-            if (Math.hypot(end.x - start.x, end.y - start.y) > 5) {
-                setWalls(prev => [...prev, currentWall]);
+        if (!isDrawing || !currentShape) return;
+        const { start, end } = currentShape;
+
+        if (mode === 'draw-wall') {
+             if (Math.hypot(end.x - start.x, end.y - start.y) > 5) {
+                setWalls(prev => [...prev, { id: `wall-${Date.now()}`, start, end }]);
+            }
+        } else if (mode === 'draw-room') {
+            const bounds = {
+                x: Math.min(start.x, end.x),
+                y: Math.min(start.y, end.y),
+                width: Math.abs(start.x - end.x),
+                height: Math.abs(start.y - end.y),
+            };
+            if (bounds.width > 10 && bounds.height > 10) {
+                setNewRoomBounds(bounds);
+                setIsNamingRoom(true);
             }
         }
+       
         setIsDrawing(false);
         setStartPos(null);
-        setCurrentWall(null);
+        setCurrentShape(null);
+    };
+
+    const handleNameRoom = (name: string) => {
+        if (newRoomBounds) {
+            onAddRoom({ name, floorId: floor.id, bounds: newRoomBounds });
+        }
+        setIsNamingRoom(false);
+        setNewRoomBounds(null);
+        setMode('draw-wall');
     };
 
     const handleDragStart = (e: React.DragEvent, deviceId: string) => {
         e.dataTransfer.setData('deviceId', deviceId);
-        if (selectedDeviceForPlacing) {
-            setSelectedDeviceForPlacing(null);
-        }
+        setMode('place-device');
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -115,23 +157,37 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+        
+        const targetRoom = rooms.find(r => r.bounds && x >= r.bounds.x && x <= r.bounds.x + r.bounds.width && y >= r.bounds.y && y <= r.bounds.y + r.bounds.height);
 
-        const newDevice: PlacedDevice = {
-            instanceId: crypto.randomUUID(),
-            deviceId,
-            x,
-            y,
-        };
-        setPlacedDevices(prev => [...prev, newDevice]);
+        if (targetRoom) {
+            const baseDevice = allDevicesMap.get(deviceId);
+            if (!baseDevice) return;
+            
+            const newDevice: RoomDevice = {
+                instanceId: crypto.randomUUID(),
+                deviceId: deviceId,
+                customName: baseDevice.name,
+                isOwned: false,
+                x: x,
+                y: y,
+            };
+            const updatedDevices = [...(targetRoom.devices || []), newDevice];
+            onUpdateRoom(targetRoom.id, { devices: updatedDevices });
+        } else {
+             // Handle drop outside a room if needed
+        }
+
+        setMode('draw-wall');
     };
 
     const handleSave = () => {
-        onSave(floor.id, { walls, placedDevices });
+        onSaveLayout(floor.id, { walls });
     };
 
     const handleReset = () => {
         setWalls([]);
-        setPlacedDevices([]);
+        // Potentially clear rooms or devices on plan
     }
 
     const deviceCategories = useMemo(() => {
@@ -151,11 +207,21 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
         return Object.values(categories).filter(c => c.devices.length > 0);
     }, [allDevicesMap, t]);
 
+    const handleSelectDeviceForPlacing = (deviceId: string) => {
+        setSelectedDeviceForPlacing(prev => {
+            const newId = prev === deviceId ? null : deviceId;
+            setMode(newId ? 'place-device' : 'draw-wall');
+            return newId;
+        });
+    }
+
     return (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-20rem)]">
             <div className="lg:col-span-3 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                    <Button variant="outline"><PencilRuler className="mr-2"/> {t.drawWall}</Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant={mode === 'draw-wall' ? 'secondary' : 'outline'} onClick={() => setMode('draw-wall')}><PencilRuler className="mr-2"/> {t.drawWall}</Button>
+                    <Button variant={mode === 'draw-room' ? 'secondary' : 'outline'} onClick={() => setMode('draw-room')}><CaseUpper className="mr-2"/> {t.defineRoom}</Button>
                     <Button onClick={handleSave} disabled={isSaving}>
                         <Save className="mr-2"/> {t.savePlan}
                     </Button>
@@ -176,7 +242,9 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                     onDrop={handleDrop}
                     className={cn(
                         "relative w-full h-full bg-muted/30 rounded-lg overflow-hidden",
-                        selectedDeviceForPlacing ? 'cursor-copy' : 'cursor-crosshair'
+                        mode === 'draw-wall' && 'cursor-crosshair',
+                        mode === 'draw-room' && 'cursor-crosshair',
+                        mode === 'place-device' && 'cursor-copy'
                     )}
                     style={{
                         touchAction: 'none',
@@ -186,6 +254,22 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                     }}
                 >
                     <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                        {rooms.map(room => room.bounds && (
+                            <g key={room.id}>
+                                <rect 
+                                    x={room.bounds.x} 
+                                    y={room.bounds.y} 
+                                    width={room.bounds.width} 
+                                    height={room.bounds.height}
+                                    fill="hsla(var(--primary) / 0.1)"
+                                    stroke="hsla(var(--primary) / 0.5)"
+                                    strokeWidth="2"
+                                />
+                                <text x={room.bounds.x + 5} y={room.bounds.y + 15} fill="hsl(var(--foreground))" fontSize="12" fontWeight="bold">
+                                    {room.name}
+                                </text>
+                            </g>
+                        ))}
                         {walls.map(wall => (
                             <line
                                 key={wall.id}
@@ -197,21 +281,33 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                                 strokeWidth="4"
                             />
                         ))}
-                        {currentWall && (
+                        {currentShape && mode === 'draw-wall' && (
                             <line
-                                x1={currentWall.start.x}
-                                y1={currentWall.start.y}
-                                x2={currentWall.end.x}
-                                y2={currentWall.end.y}
+                                x1={currentShape.start.x}
+                                y1={currentShape.start.y}
+                                x2={currentShape.end.x}
+                                y2={currentShape.end.y}
                                 stroke="hsl(var(--primary))"
                                 strokeWidth="4"
                                 strokeDasharray="5,5"
                             />
                         )}
+                        {currentShape && mode === 'draw-room' && (
+                             <rect
+                                x={Math.min(currentShape.start.x, currentShape.end.x)}
+                                y={Math.min(currentShape.start.y, currentShape.end.y)}
+                                width={Math.abs(currentShape.start.x - currentShape.end.x)}
+                                height={Math.abs(currentShape.start.y - currentShape.end.y)}
+                                stroke="hsl(var(--primary))"
+                                strokeWidth="2"
+                                fill="hsla(var(--primary) / 0.2)"
+                                strokeDasharray="5,5"
+                            />
+                        )}
                     </svg>
-                    {placedDevices.map(device => {
+                    {rooms.flatMap(room => room.devices || []).map(device => {
                         const baseDevice = allDevicesMap.get(device.deviceId);
-                        if (!baseDevice) return null;
+                        if (!baseDevice || typeof device.x === 'undefined' || typeof device.y === 'undefined') return null;
                         return (
                             <div key={device.instanceId} className="absolute p-1 bg-background border rounded-md shadow-lg pointer-events-none" style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)' }}>
                                 <DeviceIcon type={baseDevice.type} className="h-5 w-5"/>
@@ -225,7 +321,7 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                     <CardTitle>{t.devices}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-hidden p-2">
-                    <ScrollArea className="h-full">
+                    <ScrollArea className="h-full" style={{ touchAction: 'pan-y' }}>
                         <div className="space-y-4 p-2">
                             {deviceCategories.map(category => (
                                 <div key={category.label}>
@@ -236,7 +332,7 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                                                 key={device.id}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, device.id)}
-                                                onClick={() => setSelectedDeviceForPlacing(prev => prev === device.id ? null : device.id)}
+                                                onClick={() => handleSelectDeviceForPlacing(device.id)}
                                                 className={cn(
                                                     "flex items-center gap-2 p-2 bg-muted/50 rounded-md cursor-pointer active:cursor-grabbing",
                                                     selectedDeviceForPlacing === device.id && "ring-2 ring-primary"
@@ -254,5 +350,11 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                 </CardContent>
             </Card>
         </div>
+        <AddRoomFromPlanDialog 
+            isOpen={isNamingRoom}
+            onOpenChange={setIsNamingRoom}
+            onSubmit={handleNameRoom}
+        />
+        </>
     );
 }

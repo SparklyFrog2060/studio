@@ -59,16 +59,31 @@ export interface Wall {
   end: { x: number; y: number };
 }
 
-export interface PlacedDevice {
+export interface RoomDevice {
   instanceId: string;
   deviceId: string;
-  x: number;
-  y: number;
+  customName: string;
+  isOwned: boolean;
+  x?: number;
+  y?: number;
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  floorId: string;
+  devices: RoomDevice[];
+  createdAt?: Timestamp;
+  bounds?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 export interface FloorLayout {
   walls: Wall[];
-  placedDevices: PlacedDevice[];
 }
 
 export interface Floor {
@@ -78,25 +93,10 @@ export interface Floor {
   layout?: FloorLayout;
 }
 
-export interface RoomDevice {
-  instanceId: string;
-  deviceId: string;
-  customName: string;
-  isOwned: boolean;
-}
-
-export interface Room {
-  id: string;
-  name: string;
-  floorId: string;
-  devices: RoomDevice[];
-  createdAt?: Timestamp;
-}
-
 export interface RoomTemplate {
   id: string;
   name: string;
-  devices: RoomDevice[];
+  devices: Omit<RoomDevice, 'x' | 'y'>[];
   createdAt?: Timestamp;
 }
 

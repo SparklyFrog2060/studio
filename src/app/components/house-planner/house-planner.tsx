@@ -11,7 +11,7 @@ import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, ListTree, Eye, EyeOff, PencilRuler } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, ListTree, Eye, EyeOff, PencilRuler, CaseUpper } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -26,6 +26,7 @@ import SaveRoomAsTemplateDialog from "./save-room-as-template-dialog";
 import RoomCard from "./room-card";
 import FloorPlan from "./floor-plan";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AddRoomFromPlanDialog from "./add-room-from-plan-dialog";
 
 
 interface ShoppingListItem {
@@ -249,7 +250,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       }
   };
 
-  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "devices">, templateId?: string) => {
+  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "devices" | "bounds">, templateId?: string) => {
     if (!db) return;
     setIsSaving(true);
     
@@ -275,13 +276,27 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       setIsSaving(false);
     }
   };
+
+  const handleAddRoomFromPlan = async (data: Omit<Room, "id" | "createdAt" | "devices">) => {
+    if (!db) return;
+    setIsSaving(true);
+    const newRoomData = { ...data, devices: [] };
+     try {
+      await addRoom(db, newRoomData);
+      toast({ title: "Sukces!", description: `Pomieszczenie "${data.name}" zostało dodane.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się dodać pomieszczenia." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
   
-  const handleUpdateRoom = async (data: Omit<Room, "id" | "createdAt" | "floorId">) => {
-    if (!db || !editingRoom) return;
+  const handleUpdateRoom = async (roomId: string, data: Partial<Omit<Room, "id" | "createdAt" | "floorId">>) => {
+    if (!db) return;
     setIsSaving(true);
     try {
-      await updateRoom(db, editingRoom.id, data);
-      toast({ title: "Sukces!", description: `Pomieszczenie "${data.name}" zostało zaktualizowane.` });
+      await updateRoom(db, roomId, data);
+      toast({ title: "Sukces!", description: `Pomieszczenie zostało zaktualizowane.` });
       setEditingRoom(null);
     } catch (error) {
         toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zaktualizować pomieszczenia." });
@@ -417,7 +432,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                     floor={floor}
                     rooms={rooms?.filter(room => room.floorId === floor.id) || []}
                     allDevicesMap={allDevicesMap}
-                    onEditRoom={setEditingRoom}
+                    onEditRoom={(room) => setEditingRoom(room)}
                     onDeleteFloor={handleDeleteFloor}
                     onDeleteRoom={handleDeleteRoom}
                     onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
@@ -452,8 +467,11 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                   <FloorPlan
                     key={selectedFloor.id}
                     floor={selectedFloor}
+                    rooms={rooms?.filter(r => r.floorId === selectedFloor.id) || []}
                     allDevicesMap={allDevicesMap}
-                    onSave={handleUpdateFloorLayout}
+                    onSaveLayout={handleUpdateFloorLayout}
+                    onAddRoom={handleAddRoomFromPlan}
+                    onUpdateRoom={handleUpdateRoom}
                     isSaving={isSaving}
                   />
                 )}
@@ -490,7 +508,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         <AddRoomDialog
           isOpen={isAddRoomDialogOpen}
           onOpenChange={setIsAddRoomDialogOpen}
-          onSubmit={handleAddRoom}
+          onSubmit={(data, templateId) => handleAddRoom(data, templateId)}
           isSaving={isSaving}
           floors={floors}
           templates={roomTemplates || []}
@@ -500,7 +518,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       <EditRoomDialog
         isOpen={!!editingRoom}
         onOpenChange={(isOpen) => !isOpen && setEditingRoom(null)}
-        onSubmit={handleUpdateRoom}
+        onSubmit={(data) => handleUpdateRoom(editingRoom!.id, data)}
         isSaving={isSaving}
         room={editingRoom}
         allDevicesMap={allDevicesMap}
