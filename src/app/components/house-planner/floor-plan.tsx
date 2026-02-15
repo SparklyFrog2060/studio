@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -178,6 +179,7 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                         selectedDeviceForPlacing ? 'cursor-copy' : 'cursor-crosshair'
                     )}
                     style={{
+                        touchAction: 'none',
                         backgroundImage:
                             'linear-gradient(rgba(128,128,128,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.2) 1px, transparent 1px)',
                         backgroundSize: '20px 20px',
