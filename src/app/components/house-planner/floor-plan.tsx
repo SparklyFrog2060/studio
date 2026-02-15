@@ -35,6 +35,8 @@ interface FloorPlanProps {
     isSaving: boolean;
 }
 
+const SNAP_THRESHOLD = 10;
+
 export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, onAddRoom, onUpdateRoom, isSaving }: FloorPlanProps) {
     const { t } = useLocale();
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -46,6 +48,31 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
     const [mode, setMode] = useState<PlanMode>('draw-wall');
     const [isNamingRoom, setIsNamingRoom] = useState(false);
     const [newRoomBounds, setNewRoomBounds] = useState<{x:number,y:number,width:number,height:number} | null>(null);
+    const [snapIndicatorPos, setSnapIndicatorPos] = useState<{ x: number, y: number } | null>(null);
+
+    const findSnapPoint = (
+        pos: { x: number; y: number },
+    ): { x: number; y: number } => {
+        let closestPoint = pos;
+        let minDistance = SNAP_THRESHOLD;
+
+        for (const wall of walls) {
+            // Check start point
+            const distStart = Math.hypot(pos.x - wall.start.x, pos.y - wall.start.y);
+            if (distStart < minDistance) {
+                minDistance = distStart;
+                closestPoint = wall.start;
+            }
+
+            // Check end point
+            const distEnd = Math.hypot(pos.x - wall.end.x, pos.y - wall.end.y);
+            if (distEnd < minDistance) {
+                minDistance = distEnd;
+                closestPoint = wall.end;
+            }
+        }
+        return closestPoint;
+    };
 
     const getEventCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
@@ -140,16 +167,30 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         }
 
         e.preventDefault();
+        
+        let snappedPos = pos;
+        if (mode === 'draw-wall') {
+            snappedPos = findSnapPoint(pos);
+            setSnapIndicatorPos(snappedPos !== pos ? snappedPos : null);
+        }
+
         setIsDrawing(true);
-        setStartPos(pos);
-        setCurrentShape({ start: pos, end: pos });
+        setStartPos(snappedPos);
+        setCurrentShape({ start: snappedPos, end: snappedPos });
     };
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!isDrawing || !startPos) return;
         e.preventDefault();
         const pos = getEventCoordinates(e);
-        setCurrentShape({ start: startPos, end: pos });
+        
+        let endPos = pos;
+        if (mode === 'draw-wall') {
+            endPos = findSnapPoint(pos);
+            setSnapIndicatorPos(endPos !== pos ? endPos : null);
+        }
+
+        setCurrentShape({ start: startPos, end: endPos });
     };
 
     const handlePointerUp = () => {
@@ -176,6 +217,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         setIsDrawing(false);
         setStartPos(null);
         setCurrentShape(null);
+        setSnapIndicatorPos(null);
     };
 
     const handleNameRoom = (name: string) => {
@@ -352,6 +394,16 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                                 strokeWidth="2"
                                 fill="hsla(var(--primary) / 0.2)"
                                 strokeDasharray="5,5"
+                            />
+                        )}
+                        {snapIndicatorPos && (
+                            <circle
+                                cx={snapIndicatorPos.x}
+                                cy={snapIndicatorPos.y}
+                                r="8"
+                                fill="none"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth="2"
                             />
                         )}
                     </svg>
