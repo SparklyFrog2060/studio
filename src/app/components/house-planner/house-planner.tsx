@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -25,7 +24,7 @@ import MindMapView from "./mind-map-view";
 interface ShoppingListItem {
   name: string;
   price: number;
-  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice' | 'Gateway';
+  type: 'sensor' | 'switch' | 'voice-assistant' | 'lighting' | 'other-device' | 'gateway';
   link?: string;
 }
 
@@ -165,7 +164,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                  itemsToBuy.push({
                     name: gateway.name,
                     price: gateway.price || 0,
-                    type: 'Gateway' as const,
+                    type: 'gateway' as const,
                     link: gateway.link,
                  });
             }

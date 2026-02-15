@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,7 +16,7 @@ import { Link as LinkIcon } from "lucide-react";
 interface ShoppingListItem {
   name: string;
   price: number;
-  type: 'Sensor' | 'Switch' | 'VoiceAssistant' | 'Lighting' | 'OtherDevice' | 'Gateway';
+  type: 'sensor' | 'switch' | 'voice-assistant' | 'lighting' | 'other-device' | 'gateway';
   link?: string;
 }
 
@@ -39,12 +38,12 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
     }
   }, [isOpen]);
 
-  const sensors = items.filter(item => item.type === 'Sensor');
-  const switches = items.filter(item => item.type === 'Switch');
-  const assistants = items.filter(item => item.type === 'VoiceAssistant');
-  const lighting = items.filter(item => item.type === 'Lighting');
-  const otherDevices = items.filter(item => item.type === 'OtherDevice');
-  const gateways = items.filter(item => item.type === 'Gateway');
+  const sensors = items.filter(item => item.type === 'sensor');
+  const switches = items.filter(item => item.type === 'switch');
+  const assistants = items.filter(item => item.type === 'voice-assistant');
+  const lighting = items.filter(item => item.type === 'lighting');
+  const otherDevices = items.filter(item => item.type === 'other-device');
+  const gateways = items.filter(item => item.type === 'gateway');
 
   const renderSection = (title: string, sectionItems: ShoppingListItem[]) => {
     if (sectionItems.length === 0) return null;
@@ -104,5 +103,3 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
     </Dialog>
   );
 }
-
-    
