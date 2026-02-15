@@ -33,6 +33,8 @@ interface HousePlannerProps {
     setActiveView: (view: View) => void;
 }
 
+type ActiveGatewayDevice = (Gateway | VoiceAssistant) & { roomName?: string };
+
 export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { t } = useLocale();
   const db = useFirestore();
@@ -76,26 +78,49 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     return gateways.filter(g => assignedGatewayIds.includes(g.id));
   }, [gateways, assignedGatewayIds]);
 
-  const activeGatewaysForDisplay = useMemo(() => {
-    const devices: (Gateway | VoiceAssistant)[] = [...assignedGateways];
+  const deviceToRoomMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!rooms) return map;
+    for (const room of rooms) {
+        for (const deviceInstance of room.devices || []) {
+            map.set(deviceInstance.deviceId, room.name);
+        }
+    }
+    return map;
+  }, [rooms]);
+
+  const activeGatewaysForDisplay = useMemo((): ActiveGatewayDevice[] => {
+    const devices = new Map<string, ActiveGatewayDevice>();
+
+    // 1. Add gateways assigned at the house level
+    assignedGateways.forEach(gateway => {
+        devices.set(gateway.id, {
+            ...gateway,
+            roomName: deviceToRoomMap.get(gateway.id)
+        });
+    });
+
+    // 2. Add voice assistants with gateway capabilities that are in rooms
     if (voiceAssistants && rooms) {
         const roomDeviceInstances = rooms.flatMap(r => r.devices || []);
-        const assignedAssistantIds = new Set<string>();
 
         roomDeviceInstances.forEach(instance => {
             const device = allDevicesMap.get(instance.deviceId);
-            if(device?.type === 'voice-assistant') {
-                assignedAssistantIds.add(device.id);
+            // Check if it's a voice assistant that is a gateway
+            if (device?.type === 'voice-assistant' && (device as VoiceAssistant).isGateway) {
+                // Avoid re-adding if it's already there, but update with room name
+                if (!devices.has(device.id)) {
+                    devices.set(device.id, {
+                        ...(device as VoiceAssistant),
+                        roomName: deviceToRoomMap.get(device.id)
+                    });
+                }
             }
         });
-
-        const assistantGateways = voiceAssistants.filter(va => 
-            va.isGateway && assignedAssistantIds.has(va.id)
-        );
-        devices.push(...assistantGateways);
     }
-    return Array.from(new Map(devices.map(d => [d.id, d])).values());
-}, [assignedGateways, voiceAssistants, rooms, allDevicesMap]);
+
+    return Array.from(devices.values());
+  }, [assignedGateways, voiceAssistants, rooms, allDevicesMap, deviceToRoomMap]);
   
   const houseGatewayProtocols = useMemo((): Set<GatewayConnectivity> => {
     const protocols = new Set<GatewayConnectivity>();
@@ -276,10 +301,13 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
             <h3 className="text-lg font-semibold mb-3">{t.activeGateways}</h3>
             <div className="flex flex-wrap gap-4">
                 {activeGatewaysForDisplay.map(device => (
-                    <div key={device.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/40">
+                    <div key={device.id} className="flex items-center gap-3 p-2 rounded-md border bg-muted/40">
                          {'connectivity' in device ? <Router className="h-5 w-5 text-primary" /> : <Mic className="h-5 w-5 text-primary" />}
-                         <span className="font-semibold">{device.name}</span>
-                         <div className="flex gap-1">
+                         <div className="flex-grow">
+                            <span className="font-semibold">{device.name}</span>
+                            {device.roomName && <span className="text-xs text-muted-foreground ml-1">({device.roomName})</span>}
+                         </div>
+                         <div className="flex gap-1 flex-shrink-0">
                             {('connectivity' in device ? device.connectivity : device.gatewayProtocols || []).map(protocol => (
                                 <Badge key={protocol} variant="secondary" className="capitalize">{protocol}</Badge>
                             ))}

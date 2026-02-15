@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -13,7 +14,7 @@ interface MindMapViewProps {
   floors: Floor[];
   rooms: Room[];
   allDevicesMap: Map<string, BaseDevice & { type: string }>;
-  activeGateways: (Gateway | VoiceAssistant)[];
+  activeGateways: ((Gateway | VoiceAssistant) & { roomName?: string })[];
 }
 
 interface Position {
@@ -32,6 +33,7 @@ interface UnifiedGatewayNode {
   name: string;
   protocols: (GatewayConnectivity | 'wifi')[];
   icon: JSX.Element;
+  roomName?: string;
 }
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -90,6 +92,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
           name: gw.name,
           protocols: gw.connectivity,
           icon: <Router className="h-6 w-6" />,
+          roomName: gw.roomName,
         };
       }
       // It's a VoiceAssistant with gateway capabilities
@@ -98,6 +101,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
         name: gw.name,
         protocols: gw.gatewayProtocols || [],
         icon: <Mic className="h-6 w-6" />,
+        roomName: gw.roomName,
       };
     });
   }, [activeGateways]);
@@ -305,13 +309,18 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
 
                     return (
                         <div key={node.id} ref={el => nodeRefs.current[node.id] = el} className={cn(
-                            "flex flex-col items-center text-center gap-2 p-3 bg-background rounded-lg shadow-md w-28 transition-all",
+                            "flex flex-col items-center text-center gap-1 p-3 bg-background rounded-lg shadow-md w-32 transition-all",
                             isNodeOffline && "opacity-50 grayscale"
                         )}>
                             {node.icon}
-                            <span className="font-semibold text-xs">
-                                {isInternetOffline && isVoiceAssistant ? `${node.name} (${t.gatewayOnly})` : node.name}
-                            </span>
+                            <div className="leading-tight">
+                                <span className="font-semibold text-xs">
+                                    {isInternetOffline && isVoiceAssistant ? `${node.name} (${t.gatewayOnly})` : node.name}
+                                </span>
+                                {node.roomName && (
+                                    <span className="text-xs text-muted-foreground block">({node.roomName})</span>
+                                )}
+                            </div>
                             <div className="flex flex-wrap gap-1 justify-center">
                                 {node.protocols.map(p => <Badge key={p} variant="secondary" className="capitalize">{p}</Badge>)}
                             </div>
