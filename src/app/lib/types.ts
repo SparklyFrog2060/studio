@@ -53,10 +53,29 @@ export interface Gateway extends BaseDevice {
   connectivity: GatewayConnectivity[];
 }
 
+export interface Wall {
+  id: string;
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+export interface PlacedDevice {
+  instanceId: string;
+  deviceId: string;
+  x: number;
+  y: number;
+}
+
+export interface FloorLayout {
+  walls: Wall[];
+  placedDevices: PlacedDevice[];
+}
+
 export interface Floor {
   id: string;
   name: string;
   createdAt?: Timestamp;
+  layout?: FloorLayout;
 }
 
 export interface RoomDevice {

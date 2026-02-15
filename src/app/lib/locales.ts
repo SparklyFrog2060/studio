@@ -63,6 +63,7 @@ export const locales = {
     clickToAddSwitch: "Fill out the form to add a new switch.",
     // Voice Assistant specific
     addVoiceAssistant: "Add Assistant",
+    voiceAssistant: "Voice Assistant",
     editVoiceAssistant: "Edit Assistant",
     saveVoiceAssistant: "Save Assistant",
     voiceAssistantName: "Assistant Name",
@@ -135,7 +136,7 @@ export const locales = {
     system: "System",
     mapView: "Map View",
     floorView: "Floor View",
-    gridView: "Grid View",
+    planView: "Plan View",
     tuyaCloud: "Tuya Cloud",
     localIntegration: "Local Integration",
     noDevicesOfThisType: "No devices of this type have been created.",
@@ -151,6 +152,13 @@ export const locales = {
     useTemplate: "Use template (optional)",
     noTemplate: "Start with an empty room",
     noTemplates: "No templates created yet.",
+    // Plan View
+    plan: "Plan",
+    selectFloor: "Select a floor to start planning",
+    drawWall: "Draw Wall",
+    devices: "Devices",
+    savePlan: "Save Plan",
+    resetPlan: "Reset Plan",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -288,7 +296,7 @@ export const locales = {
     system: "Systemowy",
     mapView: "Widok Mapy",
     floorView: "Widok Pięter",
-    gridView: "Widok Siatki",
+    planView: "Widok Planu",
     tuyaCloud: "Chmura Tuya",
     localIntegration: "Lokalna Integracja",
     noDevicesOfThisType: "Nie utworzono żadnych urządzeń tego typu.",
@@ -304,9 +312,14 @@ export const locales = {
     useTemplate: "Użyj szablonu (opcjonalnie)",
     noTemplate: "Zacznij od pustego pokoju",
     noTemplates: "Nie utworzono jeszcze żadnych szablonów.",
+    // Plan View
+    plan: "Plan",
+    selectFloor: "Wybierz piętro, aby rozpocząć planowanie",
+    drawWall: "Rysuj Ścianę",
+    devices: "Urządzenia",
+    savePlan: "Zapisz Plan",
+    resetPlan: "Resetuj Plan",
   },
 };
 
 export type Locale = keyof typeof locales;
-
-    

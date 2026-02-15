@@ -25,7 +25,7 @@ import GatewayList from "./components/gateway-creator/gateway-list";
 import HousePlanner from "./components/house-planner/house-planner";
 import type { Sensor, Switch, Lighting, VoiceAssistant, Gateway, OtherDevice } from "./lib/types";
 import { useLocale } from "./components/locale-provider";
-import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu, Lightbulb, Box } from 'lucide-react';
+import { Languages, Building, Thermometer, ToggleRight, Mic, LayoutGrid, Router, Menu, Lightbulb, Box, PencilRuler } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -456,7 +456,7 @@ export default function SensorCreatorApp() {
             <div className="flex-1 hidden md:flex justify-center px-4 min-w-0">
               <nav className="flex items-center space-x-1 bg-muted p-1 rounded-lg">
                   <Button variant={activeView === 'planner' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('planner')}>
-                      <LayoutGrid className="mr-2 h-4 w-4" />
+                      <PencilRuler className="mr-2 h-4 w-4" />
                       {t.housePlanner}
                   </Button>
                   <Button variant={activeView === 'sensors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setActiveView('sensors')}>

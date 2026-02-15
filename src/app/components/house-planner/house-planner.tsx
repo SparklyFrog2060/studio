@@ -4,14 +4,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice, RoomTemplate } from "@/app/lib/types";
-import { addFloor, deleteFloor } from "@/lib/firebase/floors";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice, RoomTemplate, FloorLayout } from "@/app/lib/types";
+import { addFloor, deleteFloor, updateFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, ListTree, Grid, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, ListTree, Eye, EyeOff, PencilRuler } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -24,6 +24,9 @@ import MindMapView from "./mind-map-view";
 import { addRoomTemplate } from "@/lib/firebase/room-templates";
 import SaveRoomAsTemplateDialog from "./save-room-as-template-dialog";
 import RoomCard from "./room-card";
+import FloorPlan from "./floor-plan";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 interface ShoppingListItem {
   brand: string;
@@ -66,7 +69,14 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const [roomToTemplate, setRoomToTemplate] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
-  const [plannerView, setPlannerView] = useState<'list' | 'map' | 'grid'>('list');
+  const [plannerView, setPlannerView] = useState<'list' | 'map' | 'plan'>('list');
+  const [selectedFloorId, setSelectedFloorId] = useState<string>("");
+
+  useEffect(() => {
+    if (floors && floors.length > 0 && !selectedFloorId) {
+      setSelectedFloorId(floors[0].id);
+    }
+  }, [floors, selectedFloorId]);
 
   const allDevicesMap = useMemo(() => {
     const map = new Map<string, BaseDevice & {type: string}>();
@@ -140,49 +150,50 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   }, [activeGatewaysForDisplay]);
   
   const shoppingListItems = useMemo((): ShoppingListItem[] => {
-    if (!rooms || !allDevicesMap.size) return [];
-    
-    const itemsToBuy: ShoppingListItem[] = [];
-    const processedInstances = new Set<string>();
+    const items: ShoppingListItem[] = [];
+    const usedOwnedQuantities: { [key: string]: number } = {};
 
-    rooms.forEach(room => {
-        (room.devices || []).forEach(instance => {
-            if (processedInstances.has(instance.instanceId)) return;
-
-            if (instance.isOwned === false) { 
-                const device = allDevicesMap.get(instance.deviceId);
-                if (device) {
-                    itemsToBuy.push({
-                        brand: device.brand,
-                        baseName: device.name,
-                        customName: instance.customName,
-                        price: device.price || 0,
-                        type: device.type as ShoppingListItem['type'],
-                        link: device.link,
-                    });
-                }
+    // First pass: gather all non-owned devices from rooms
+    (rooms || []).forEach(room => {
+      (room.devices || []).forEach(instance => {
+        if (!instance.isOwned) {
+          const device = allDevicesMap.get(instance.deviceId);
+          if (device) {
+            items.push({
+              brand: device.brand,
+              baseName: device.name,
+              customName: instance.customName,
+              price: device.price || 0,
+              type: device.type as ShoppingListItem['type'],
+              link: device.link,
+            });
+          }
+        } else {
+            if (!usedOwnedQuantities[instance.deviceId]) {
+                usedOwnedQuantities[instance.deviceId] = 0;
             }
-            processedInstances.add(instance.instanceId);
-        });
+            usedOwnedQuantities[instance.deviceId]++;
+        }
+      });
     });
-
-    assignedGateways.forEach(gateway => {
-        const isPlacedInAnyRoom = rooms.some(r => r.devices?.some(d => d.deviceId === gateway.id));
-        const isOwned = (gateway.quantity || 0) > 0;
-
-        if (!isPlacedInAnyRoom && !isOwned) {
-             itemsToBuy.push({
+    
+    // Second pass: check house-level gateways
+    (assignedGateways || []).forEach(gateway => {
+        const totalOwned = gateway.quantity || 0;
+        const totalUsed = usedOwnedQuantities[gateway.id] || 0;
+        if(totalOwned <= totalUsed) {
+            items.push({
                 brand: gateway.brand,
                 baseName: gateway.name,
-                customName: gateway.name,
+                customName: gateway.name, 
                 price: gateway.price || 0,
-                type: 'gateway' as const,
+                type: 'gateway',
                 link: gateway.link,
-             });
+            });
         }
     });
 
-    return itemsToBuy;
+    return items;
   }, [rooms, allDevicesMap, assignedGateways]);
   
   const totalHousePrice = useMemo(() => {
@@ -202,6 +213,19 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       setIsSaving(false);
     }
   };
+
+  const handleUpdateFloorLayout = async (floorId: string, layout: FloorLayout) => {
+    if (!db) return;
+    setIsSaving(true);
+    try {
+      await updateFloor(db, floorId, { layout });
+      toast({ title: "Sukces!", description: "Plan piętra został zapisany." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zapisać planu piętra." });
+    } finally {
+        setIsSaving(false);
+    }
+  }
 
   const handleDeleteFloor = async (floorId: string) => {
     if (!db) return;
@@ -310,6 +334,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   };
 
   const isLoading = isLoadingFloors || isLoadingRooms || isLoadingHouseConfig || isLoadingRoomTemplates;
+  const selectedFloor = useMemo(() => floors?.find(f => f.id === selectedFloorId), [floors, selectedFloorId]);
 
   return (
     <div className="space-y-6">
@@ -333,9 +358,9 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                     <ListTree className="mr-2 h-4 w-4" />
                     {t.floorView}
                 </Button>
-                <Button variant={plannerView === 'grid' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('grid')}>
-                    <Grid className="mr-2 h-4 w-4" />
-                    {t.gridView}
+                <Button variant={plannerView === 'plan' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('plan')}>
+                    <PencilRuler className="mr-2 h-4 w-4" />
+                    {t.planView}
                 </Button>
                 <Button variant={plannerView === 'map' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('map')}>
                     <MapIcon className="mr-2 h-4 w-4" />
@@ -410,28 +435,36 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
               </div>
             )
           )}
-          {plannerView === 'grid' && (
-            rooms && rooms.length > 0 ? (
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {[...(rooms || [])].sort((a, b) => a.name.localeCompare(b.name)).map(room => (
-                  <RoomCard 
-                    key={room.id} 
-                    room={room} 
+          {plannerView === 'plan' && (
+            floors && floors.length > 0 ? (
+              <div className="space-y-4">
+                <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
+                  <SelectTrigger className="w-full md:w-72">
+                    <SelectValue placeholder={t.selectFloor} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {floors.map(floor => (
+                      <SelectItem key={floor.id} value={floor.id}>{floor.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedFloor && (
+                  <FloorPlan
+                    key={selectedFloor.id}
+                    floor={selectedFloor}
                     allDevicesMap={allDevicesMap}
-                    onEditRoom={setEditingRoom} 
-                    onDeleteRoom={handleDeleteRoom}
-                    onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
-                    houseGatewayProtocols={houseGatewayProtocols}
+                    onSave={handleUpdateFloorLayout}
+                    isSaving={isSaving}
                   />
-                ))}
+                )}
               </div>
             ) : (
               <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2Z"></path><path d="M6 18h12"></path><path d="M12 18V6"></path></svg>
-                  </div>
-                  <h2 className="text-2xl font-semibold text-foreground">{t.noRoomsInHouse}</h2>
-                  <p className="mt-2">{t.clickToAddRoom}</p>
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <PencilRuler className="text-primary h-10 w-10"/>
+                </div>
+                <h2 className="text-2xl font-semibold text-foreground">{t.noFloors}</h2>
+                <p className="mt-2">{t.clickToAddRoom}</p>
               </div>
             )
           )}
@@ -500,5 +533,3 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     </div>
   );
 }
-
-    
