@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useCollection, useDoc, useFirestore } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice, RoomTemplate, FloorLayout } from "@/app/lib/types";
 import { addFloor, deleteFloor, updateFloor } from "@/lib/firebase/floors";
@@ -48,17 +48,18 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { t } = useLocale();
   const db = useFirestore();
   const { toast } = useToast();
+  const { isUserLoading: isAuthLoading } = useUser();
 
-  const { data: floors, isLoading: isLoadingFloors } = useCollection<Floor>(db ? "floors" : null, { sort: { field: "createdAt", direction: "asc" } });
-  const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(db ? "rooms" : null, { sort: { field: "createdAt", direction: "asc" } });
-  const { data: sensors } = useCollection<Sensor>(db ? "sensors" : null);
-  const { data: switches } = useCollection<Switch>(db ? "switches" : null);
-  const { data: voiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null);
-  const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
-  const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
-  const { data: gateways } = useCollection<Gateway>(db ? "gateways" : null);
-  const { data: roomTemplates, isLoading: isLoadingRoomTemplates } = useCollection<RoomTemplate>(db ? "room_templates" : null, { sort: { field: "createdAt", direction: "asc" } });
-  const houseConfigDocRef = useMemo(() => (db ? doc(db, "house_config", "main") : null), [db]);
+  const { data: floors, isLoading: isLoadingFloors } = useCollection<Floor>(!isAuthLoading && db ? "floors" : null, { sort: { field: "createdAt", direction: "asc" } });
+  const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(!isAuthLoading && db ? "rooms" : null, { sort: { field: "createdAt", direction: "asc" } });
+  const { data: sensors } = useCollection<Sensor>(!isAuthLoading && db ? "sensors" : null);
+  const { data: switches } = useCollection<Switch>(!isAuthLoading && db ? "switches" : null);
+  const { data: voiceAssistants } = useCollection<VoiceAssistant>(!isAuthLoading && db ? "voice_assistants" : null);
+  const { data: lighting } = useCollection<Lighting>(!isAuthLoading && db ? "lighting" : null);
+  const { data: otherDevices } = useCollection<OtherDevice>(!isAuthLoading && db ? "other_devices" : null);
+  const { data: gateways } = useCollection<Gateway>(!isAuthLoading && db ? "gateways" : null);
+  const { data: roomTemplates, isLoading: isLoadingRoomTemplates } = useCollection<RoomTemplate>(!isAuthLoading && db ? "room_templates" : null, { sort: { field: "createdAt", direction: "asc" } });
+  const houseConfigDocRef = useMemo(() => (!isAuthLoading && db ? doc(db, "house_config", "main") : null), [db, isAuthLoading]);
   const { data: houseConfig, isLoading: isLoadingHouseConfig } = useDoc<HouseConfig>(houseConfigDocRef);
 
 
@@ -348,7 +349,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     }
   };
 
-  const isLoading = isLoadingFloors || isLoadingRooms || isLoadingHouseConfig || isLoadingRoomTemplates;
+  const isLoading = isAuthLoading || isLoadingFloors || isLoadingRooms || isLoadingHouseConfig || isLoadingRoomTemplates;
   const selectedFloor = useMemo(() => floors?.find(f => f.id === selectedFloorId), [floors, selectedFloorId]);
 
   return (

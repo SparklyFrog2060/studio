@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useFirestore, useUser } from "@/firebase";
 import { addSensor, deleteSensor, updateSensor } from "@/lib/firebase/sensors";
 import { addSwitch, deleteSwitch, updateSwitch } from "@/lib/firebase/switches";
 import { addLighting, deleteLighting, updateLighting } from "@/lib/firebase/lighting";
@@ -50,33 +50,35 @@ type GatewayDevice = (Gateway & { deviceType: 'gateway' }) | (VoiceAssistant & {
 export default function SensorCreatorApp() {
   const { t, setLocale, locale } = useLocale();
   const db = useFirestore();
+  const { isUserLoading: isAuthLoading } = useUser();
+
 
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  const { data: sensors, isLoading: isLoadingSensors } = useCollection<Sensor>(db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: sensors, isLoading: isLoadingSensors } = useCollection<Sensor>(!isAuthLoading && db ? "sensors" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSensor, setIsSavingSensor] = useState(false);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   
-  const { data: switches, isLoading: isLoadingSwitches } = useCollection<Switch>(db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: switches, isLoading: isLoadingSwitches } = useCollection<Switch>(!isAuthLoading && db ? "switches" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingSwitch, setIsSavingSwitch] = useState(false);
   const [editingSwitch, setEditingSwitch] = useState<Switch | null>(null);
 
-  const { data: lighting, isLoading: isLoadingLighting } = useCollection<Lighting>(db ? "lighting" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: lighting, isLoading: isLoadingLighting } = useCollection<Lighting>(!isAuthLoading && db ? "lighting" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingLighting, setIsSavingLighting] = useState(false);
   const [editingLighting, setEditingLighting] = useState<Lighting | null>(null);
   
-  const { data: otherDevices, isLoading: isLoadingOtherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: otherDevices, isLoading: isLoadingOtherDevices } = useCollection<OtherDevice>(!isAuthLoading && db ? "other_devices" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingOtherDevice, setIsSavingOtherDevice] = useState(false);
   const [editingOtherDevice, setEditingOtherDevice] = useState<OtherDevice | null>(null);
 
-  const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: voiceAssistants, isLoading: isLoadingVoiceAssistants } = useCollection<VoiceAssistant>(!isAuthLoading && db ? "voice_assistants" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingVoiceAssistant, setIsSavingVoiceAssistant] = useState(false);
   const [editingVoiceAssistant, setEditingVoiceAssistant] = useState<VoiceAssistant | null>(null);
 
-  const { data: gateways, isLoading: isLoadingGateways } = useCollection<Gateway>(db ? "gateways" : null, { sort: { field: "createdAt", direction: "desc" }});
+  const { data: gateways, isLoading: isLoadingGateways } = useCollection<Gateway>(!isAuthLoading && db ? "gateways" : null, { sort: { field: "createdAt", direction: "desc" }});
   const [isSavingGateway, setIsSavingGateway] = useState(false);
   const [editingGateway, setEditingGateway] = useState<Gateway | null>(null);
 
@@ -344,7 +346,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddSensorForm onSubmit={handleAddSensor} isSaving={isSavingSensor} /></div>
           <div className="lg:col-span-2">
-            {isLoadingSensors ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingSensors ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <SensorList sensors={sensors || []} onDeleteSensor={handleDeleteSensor} onEditSensor={setEditingSensor} />
             )}
           </div>
@@ -354,7 +356,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddSwitchForm onSubmit={handleAddSwitch} isSaving={isSavingSwitch} /></div>
           <div className="lg:col-span-2">
-            {isLoadingSwitches ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingSwitches ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <SwitchList switches={switches || []} onDeleteSwitch={handleDeleteSwitch} onEditSwitch={setEditingSwitch} />
             )}
           </div>
@@ -364,7 +366,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddLightingForm onSubmit={handleAddLighting} isSaving={isSavingLighting} /></div>
           <div className="lg:col-span-2">
-            {isLoadingLighting ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingLighting ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <LightingList lightingItems={lighting || []} onDeleteLighting={handleDeleteLighting} onEditLighting={setEditingLighting} />
             )}
           </div>
@@ -374,7 +376,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddOtherDeviceForm onSubmit={handleAddOtherDevice} isSaving={isSavingOtherDevice} /></div>
           <div className="lg:col-span-2">
-            {isLoadingOtherDevices ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingOtherDevices ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <OtherDeviceList devices={otherDevices || []} onDeleteDevice={handleDeleteOtherDevice} onEditDevice={setEditingOtherDevice} />
             )}
           </div>
@@ -384,7 +386,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddVoiceAssistantForm onSubmit={handleAddVoiceAssistant} isSaving={isSavingVoiceAssistant} /></div>
           <div className="lg:col-span-2">
-            {isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <VoiceAssistantList assistants={voiceAssistants || []} onDeleteAssistant={handleDeleteVoiceAssistant} onEditAssistant={setEditingVoiceAssistant} />
             )}
           </div>
@@ -394,7 +396,7 @@ export default function SensorCreatorApp() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1"><AddGatewayForm onSubmit={handleAddGateway} isSaving={isSavingGateway} /></div>
           <div className="lg:col-span-2">
-            {isLoadingGateways || isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
+            {isAuthLoading || isLoadingGateways || isLoadingVoiceAssistants ? <div className="text-center text-muted-foreground mt-20">Ładowanie...</div> : (
               <GatewayList devices={gatewayDevices} onDeleteDevice={handleDeleteDevice} onEditDevice={handleEditDevice} />
             )}
           </div>
