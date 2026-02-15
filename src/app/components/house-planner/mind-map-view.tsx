@@ -5,7 +5,7 @@ import type { Floor, Room, VoiceAssistant, Gateway, GatewayConnectivity, BaseDev
 import { useLocale } from '../locale-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic, Eye, EyeOff, Wifi } from 'lucide-react';
+import { Home, Router, Cloud, Thermometer, ToggleRight, Lightbulb, Box, Mic, Eye, EyeOff, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +68,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
   const [lines, setLines] = useState<Line[]>([]);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [hiddenRoomIds, setHiddenRoomIds] = useState<Set<string>>(new Set());
+  const [isInternetOffline, setIsInternetOffline] = useState(false);
 
   const toggleRoomVisibility = (roomId: string) => {
     setHiddenRoomIds(prev => {
@@ -134,7 +135,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
             observer.unobserve(currentRef);
         }
     };
-  }, [floors, rooms, allDevicesMap, activeGateways]);
+  }, [floors, rooms, allDevicesMap, activeGateways, isInternetOffline]);
   
   const midLevelNodes = useMemo(() => {
     const nodes: UnifiedGatewayNode[] = [...gatewayNodes];
@@ -205,6 +206,10 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
         });
         
         protocolsInRoom.forEach((targetId, protocol) => {
+            const isCloudProtocol = protocol === 'tuya' || protocol === 'other_app';
+            if (isInternetOffline && isCloudProtocol) {
+                return; // Don't draw line if internet is off
+            }
             newLines.push({
                 from: room.id, // Draw line from the room card
                 to: targetId,
@@ -214,6 +219,10 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     });
 
     midLevelNodes.forEach(node => {
+        const isCloudNode = node.id === 'cloud_tuya' || node.id === 'local_other_app';
+        if (isInternetOffline && isCloudNode) {
+            return; // Don't draw lines from offline cloud services
+        }
         newLines.push({
             from: node.id,
             to: 'home_assistant',
@@ -222,10 +231,17 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     });
 
     setLines(newLines);
-}, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes, hiddenRoomIds]);
+}, [nodePositions, rooms, allDevicesMap, midLevelNodes, gatewayNodes, hiddenRoomIds, isInternetOffline]);
 
   return (
     <div ref={containerRef} className="relative w-full min-h-[80vh] p-4 bg-muted/30 rounded-lg overflow-auto">
+        <div className="absolute top-4 right-4 z-20">
+            <Button variant="outline" size="sm" onClick={() => setIsInternetOffline(prev => !prev)}>
+                {isInternetOffline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+                <span className="ml-2">{isInternetOffline ? 'Włącz Internet' : 'Wyłącz Internet'}</span>
+            </Button>
+        </div>
+
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
             {lines.map((line, index) => {
                 const fromPos = nodePositions[line.from];
@@ -244,15 +260,27 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
             </div>
 
             <div className="flex items-start justify-center gap-8 flex-wrap">
-                 {midLevelNodes.map(node => (
-                    <div key={node.id} ref={el => nodeRefs.current[node.id] = el} className="flex flex-col items-center text-center gap-2 p-3 bg-background rounded-lg shadow-md w-28">
-                        {node.icon}
-                        <span className="font-semibold text-xs">{node.name}</span>
-                        <div className="flex flex-wrap gap-1 justify-center">
-                            {node.protocols.map(p => <Badge key={p} variant="secondary" className="capitalize">{p}</Badge>)}
+                 {midLevelNodes.map(node => {
+                    const isCloudNode = node.id === 'cloud_tuya' || node.id === 'local_other_app';
+                    const isVoiceAssistant = activeGateways.some(d => d.id === node.id && !('connectivity' in d));
+
+                    const isNodeOffline = isInternetOffline && (isCloudNode || isVoiceAssistant);
+
+                    return (
+                        <div key={node.id} ref={el => nodeRefs.current[node.id] = el} className={cn(
+                            "flex flex-col items-center text-center gap-2 p-3 bg-background rounded-lg shadow-md w-28 transition-all",
+                            isNodeOffline && "opacity-50 grayscale"
+                        )}>
+                            {node.icon}
+                            <span className="font-semibold text-xs">
+                                {isInternetOffline && isVoiceAssistant ? `${node.name} (${t.gatewayOnly})` : node.name}
+                            </span>
+                            <div className="flex flex-wrap gap-1 justify-center">
+                                {node.protocols.map(p => <Badge key={p} variant="secondary" className="capitalize">{p}</Badge>)}
+                            </div>
                         </div>
-                    </div>
-                 ))}
+                    );
+                })}
             </div>
 
             <div className="w-full flex flex-col gap-8 items-stretch">
@@ -289,8 +317,18 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
                                             const device = allDevicesMap.get(instance.deviceId);
                                             if (!device) return null;
                                             const protocol = getDeviceProtocol(device as any);
+                                            
+                                            const isDeviceOffline = isInternetOffline && (
+                                                protocol === 'tuya' ||
+                                                protocol === 'other_app' ||
+                                                device.type === 'voice-assistant'
+                                            );
+
                                             return (
-                                                <div key={instance.instanceId} className="flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs">
+                                                <div key={instance.instanceId} className={cn(
+                                                    "flex items-center gap-2 p-1.5 bg-muted rounded-md text-xs transition-opacity",
+                                                    isDeviceOffline && "opacity-40"
+                                                )}>
                                                     <DeviceIcon type={device.type} className="h-4 w-4 flex-shrink-0"/>
                                                     <span className="flex-1 truncate" title={instance.customName}>{instance.customName}</span>
                                                     {protocol && <Badge variant="outline" style={{borderColor: PROTOCOL_COLORS[protocol]}} className="text-xs capitalize">{protocol}</Badge>}

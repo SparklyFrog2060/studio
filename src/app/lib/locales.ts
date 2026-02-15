@@ -138,6 +138,7 @@ export const locales = {
     noDevicesOfThisType: "No devices of this type have been created.",
     add: "Add",
     owned: "Owned",
+    gatewayOnly: "Gateway Only",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -278,6 +279,7 @@ export const locales = {
     noDevicesOfThisType: "Nie utworzono żadnych urządzeń tego typu.",
     add: "Dodaj",
     owned: "Posiadane",
+    gatewayOnly: "Tylko Bramka",
   },
 };
 
