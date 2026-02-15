@@ -457,7 +457,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                 >
                      <Popover open={popoverState.open} onOpenChange={(isOpen) => setPopoverState(p => ({ ...p, open: isOpen }))}>
                         <PopoverAnchor style={{ position: 'absolute', top: popoverState.y, left: popoverState.x }} />
-                        <PopoverContent className="w-80" onOpenAutoFocus={e => e.preventDefault()}>
+                        <PopoverContent className="w-80">
                             <div className="grid gap-4">
                                 <div className="space-y-2">
                                     <h4 className="font-medium leading-none">{t.editDevice}</h4>
