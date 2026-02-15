@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins, Lightbulb, Box, AlertTriangle as WarningIcon } from "lucide-react";
+import { Thermometer, ToggleRight, Mic, Pencil, Trash2, Coins, Lightbulb, Box, AlertTriangle as WarningIcon, Copy } from "lucide-react";
 import type { Room, GatewayConnectivity, BaseDevice, Sensor, Switch, Lighting, OtherDevice } from "@/app/lib/types";
 import { useLocale } from "../locale-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -17,6 +17,7 @@ interface RoomCardProps {
   allDevicesMap: Map<string, BaseDevice & { type: string }>;
   onEditRoom: (room: Room) => void;
   onDeleteRoom: (roomId: string) => void;
+  onSaveAsTemplate: (room: Room) => void;
   houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
@@ -46,7 +47,7 @@ const DeviceIcon = ({ type, ...props }: {type: string} & React.ComponentProps<ty
     }
 };
 
-export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom, houseGatewayProtocols }: RoomCardProps) {
+export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom, onSaveAsTemplate, houseGatewayProtocols }: RoomCardProps) {
   const { t } = useLocale();
 
   const { devicesInRoom, missingGatewayDetails } = useMemo(() => {
@@ -155,6 +156,10 @@ export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom
 
         <CardFooter className="flex justify-end items-center pt-4">
           <div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(room); }}>
+                  <Copy className="h-4 w-4" />
+                  <span className="sr-only">{t.saveAsTemplate}</span>
+              </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); onEditRoom(room); }}>
                   <Pencil className="h-4 w-4" />
                   <span className="sr-only">{t.edit}</span>

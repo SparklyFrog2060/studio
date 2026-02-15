@@ -10,24 +10,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocale } from "@/app/components/locale-provider";
-import type { Room, Floor } from "@/app/lib/types";
+import type { Room, Floor, RoomTemplate } from "@/app/lib/types";
 
 interface AddRoomDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Room, "id" | "createdAt" | "devices">) => void;
+  onSubmit: (data: Omit<Room, "id" | "createdAt" | "devices">, templateId?: string) => void;
   isSaving: boolean;
   floors: Floor[];
+  templates: RoomTemplate[];
 }
 
 const formSchema = z.object({
   name: z.string().min(1, "Nazwa jest wymagana."),
   floorId: z.string().min(1, "Piętro jest wymagane."),
+  templateId: z.string().optional(),
 });
 
 type RoomFormData = z.infer<typeof formSchema>;
 
-export default function AddRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, floors }: AddRoomDialogProps) {
+export default function AddRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving, floors, templates }: AddRoomDialogProps) {
   const { t } = useLocale();
 
   const form = useForm<RoomFormData>({
@@ -35,11 +37,13 @@ export default function AddRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving
     defaultValues: {
       name: "",
       floorId: "",
+      templateId: "",
     },
   });
 
   const handleFormSubmit = (data: RoomFormData) => {
-    onSubmit(data);
+    const { templateId, ...roomData } = data;
+    onSubmit(roomData, templateId);
     form.reset();
   };
 
@@ -82,6 +86,35 @@ export default function AddRoomDialog({ isOpen, onOpenChange, onSubmit, isSaving
                           {floor.name}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="templateId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.useTemplate}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t.noTemplate} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">{t.noTemplate}</SelectItem>
+                      {templates.length > 0 ? (
+                        templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-sm text-muted-foreground">{t.noTemplates}</div>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

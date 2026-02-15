@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice } from "@/app/lib/types";
+import type { Floor, Room, Sensor, Switch, VoiceAssistant, Lighting, OtherDevice, Gateway, GatewayConnectivity, HouseConfig, RoomDevice, BaseDevice, RoomTemplate } from "@/app/lib/types";
 import { addFloor, deleteFloor } from "@/lib/firebase/floors";
 import { addRoom, updateRoom, deleteRoom } from "@/lib/firebase/rooms";
 import { updateHouseConfig } from "@/lib/firebase/house";
@@ -21,6 +21,8 @@ import type { View } from "@/app/sensor-creator-app";
 import AddHouseGatewayDialog from "./add-house-gateway-dialog";
 import { doc } from "firebase/firestore";
 import MindMapView from "./mind-map-view";
+import { addRoomTemplate } from "@/lib/firebase/room-templates";
+import SaveRoomAsTemplateDialog from "./save-room-as-template-dialog";
 
 interface ShoppingListItem {
   brand: string;
@@ -50,6 +52,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const { data: lighting } = useCollection<Lighting>(db ? "lighting" : null);
   const { data: otherDevices } = useCollection<OtherDevice>(db ? "other_devices" : null);
   const { data: gateways } = useCollection<Gateway>(db ? "gateways" : null);
+  const { data: roomTemplates, isLoading: isLoadingRoomTemplates } = useCollection<RoomTemplate>(db ? "room_templates" : null, { sort: { field: "createdAt", direction: "asc" } });
   const houseConfigDocRef = useMemo(() => (db ? doc(db, "house_config", "main") : null), [db]);
   const { data: houseConfig, isLoading: isLoadingHouseConfig } = useDoc<HouseConfig>(houseConfigDocRef);
 
@@ -57,7 +60,9 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const [isAddFloorDialogOpen, setIsAddFloorDialogOpen] = useState(false);
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
   const [isAddGatewayDialogOpen, setIsAddGatewayDialogOpen] = useState(false);
+  const [isSaveAsTemplateDialogOpen, setIsSaveAsTemplateDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [roomToTemplate, setRoomToTemplate] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [plannerView, setPlannerView] = useState<'list' | 'map'>('list');
@@ -223,10 +228,22 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       }
   };
 
-  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "devices">) => {
+  const handleAddRoom = async (data: Omit<Room, "id" | "createdAt" | "devices">, templateId?: string) => {
     if (!db) return;
     setIsSaving(true);
-    const newRoomData = { ...data, devices: [] };
+    
+    let devicesFromTemplate: RoomDevice[] = [];
+    if (templateId) {
+        const template = roomTemplates?.find(t => t.id === templateId);
+        if (template) {
+            devicesFromTemplate = template.devices.map(device => ({
+                ...device,
+                instanceId: crypto.randomUUID()
+            }));
+        }
+    }
+    
+    const newRoomData = { ...data, devices: devicesFromTemplate };
     try {
       await addRoom(db, newRoomData);
       toast({ title: "Sukces!", description: `Pomieszczenie "${data.name}" zostało dodane.` });
@@ -265,8 +282,37 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
       setIsSaving(false);
     }
   };
+  
+  const handleOpenSaveAsTemplateDialog = (room: Room) => {
+    setRoomToTemplate(room);
+    setIsSaveAsTemplateDialogOpen(true);
+  };
 
-  const isLoading = isLoadingFloors || isLoadingRooms || isLoadingHouseConfig;
+  const handleSaveRoomAsTemplate = async (data: { name: string }) => {
+    if (!db || !roomToTemplate) return;
+    setIsSaving(true);
+    try {
+      const templateData = {
+        name: data.name,
+        devices: roomToTemplate.devices.map(({ deviceId, customName, isOwned }) => ({
+            instanceId: crypto.randomUUID(),
+            deviceId,
+            customName,
+            isOwned
+        })),
+      };
+      await addRoomTemplate(db, templateData);
+      toast({ title: "Sukces!", description: `Szablon "${data.name}" został zapisany.` });
+      setIsSaveAsTemplateDialogOpen(false);
+      setRoomToTemplate(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zapisać szablonu." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isLoading = isLoadingFloors || isLoadingRooms || isLoadingHouseConfig || isLoadingRoomTemplates;
 
   return (
     <div className="space-y-6">
@@ -340,6 +386,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                 onEditRoom={setEditingRoom}
                 onDeleteFloor={handleDeleteFloor}
                 onDeleteRoom={handleDeleteRoom}
+                onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
                 houseGatewayProtocols={houseGatewayProtocols}
               />
             ))}
@@ -376,6 +423,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
           onSubmit={handleAddRoom}
           isSaving={isSaving}
           floors={floors}
+          templates={roomTemplates || []}
         />
       )}
 
@@ -403,6 +451,14 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         isSaving={isSaving}
         allGateways={gateways || []}
         assignedGatewayIds={assignedGatewayIds}
+      />
+
+      <SaveRoomAsTemplateDialog
+        isOpen={isSaveAsTemplateDialogOpen}
+        onOpenChange={setIsSaveAsTemplateDialogOpen}
+        onSubmit={handleSaveRoomAsTemplate}
+        isSaving={isSaving}
+        room={roomToTemplate}
       />
     </div>
   );

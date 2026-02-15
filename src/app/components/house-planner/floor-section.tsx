@@ -15,10 +15,11 @@ interface FloorSectionProps {
   onEditRoom: (room: Room) => void;
   onDeleteFloor: (floorId: string) => void;
   onDeleteRoom: (roomId: string) => void;
+  onSaveAsTemplate: (room: Room) => void;
   houseGatewayProtocols: Set<GatewayConnectivity>;
 }
 
-export default function FloorSection({ floor, rooms, allDevicesMap, onEditRoom, onDeleteFloor, onDeleteRoom, houseGatewayProtocols }: FloorSectionProps) {
+export default function FloorSection({ floor, rooms, allDevicesMap, onEditRoom, onDeleteFloor, onDeleteRoom, onSaveAsTemplate, houseGatewayProtocols }: FloorSectionProps) {
   const { t } = useLocale();
 
   return (
@@ -52,6 +53,7 @@ export default function FloorSection({ floor, rooms, allDevicesMap, onEditRoom, 
               allDevicesMap={allDevicesMap}
               onEditRoom={onEditRoom} 
               onDeleteRoom={onDeleteRoom}
+              onSaveAsTemplate={onSaveAsTemplate}
               houseGatewayProtocols={houseGatewayProtocols}
             />
           ))}

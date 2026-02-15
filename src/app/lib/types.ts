@@ -74,6 +74,13 @@ export interface Room {
   createdAt?: Timestamp;
 }
 
+export interface RoomTemplate {
+  id: string;
+  name: string;
+  devices: RoomDevice[];
+  createdAt?: Timestamp;
+}
+
 export interface HouseConfig {
   gatewayIds: string[];
 }

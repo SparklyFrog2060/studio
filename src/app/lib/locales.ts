@@ -139,6 +139,15 @@ export const locales = {
     add: "Add",
     owned: "Owned",
     gatewayOnly: "Gateway Only",
+    // Template specific
+    template: "Template",
+    saveAsTemplate: "Save as template",
+    templateName: "Template Name",
+    templateNamePlaceholder: "e.g., Standard Bedroom",
+    saveTemplate: "Save Template",
+    useTemplate: "Use template (optional)",
+    noTemplate: "Start with an empty room",
+    noTemplates: "No templates created yet.",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -280,6 +289,15 @@ export const locales = {
     add: "Dodaj",
     owned: "Posiadane",
     gatewayOnly: "Tylko Bramka",
+    // Template specific
+    template: "Szablon",
+    saveAsTemplate: "Zapisz jako szablon",
+    templateName: "Nazwa szablonu",
+    templateNamePlaceholder: "np. Standardowa sypialnia",
+    saveTemplate: "Zapisz szablon",
+    useTemplate: "Użyj szablonu (opcjonalnie)",
+    noTemplate: "Zacznij od pustego pokoju",
+    noTemplates: "Nie utworzono jeszcze żadnych szablonów.",
   },
 };
 
