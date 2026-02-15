@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,6 +15,7 @@ import { useLocale } from "@/app/components/locale-provider";
 import { Link as LinkIcon } from "lucide-react";
 
 interface ShoppingListItem {
+  brand: string;
   baseName: string;
   customName: string;
   price: number;
@@ -55,7 +57,7 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
           <div key={`${title}-${index}`} className="flex justify-between items-center text-sm py-2 border-b border-dashed">
             <div className="flex items-center gap-2">
               <div>
-                <span>{item.baseName}</span>
+                <span>{item.brand} {item.baseName}</span>
                 {item.customName && item.customName !== item.baseName && (
                     <span className="text-muted-foreground ml-1">({item.customName})</span>
                 )}

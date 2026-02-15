@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -22,6 +23,7 @@ import { doc } from "firebase/firestore";
 import MindMapView from "./mind-map-view";
 
 interface ShoppingListItem {
+  brand: string;
   baseName: string;
   customName: string;
   price: number;
@@ -135,14 +137,18 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     if (!rooms || !allDevicesMap.size) return [];
     
     const itemsToBuy: ShoppingListItem[] = [];
-    
+    const processedInstances = new Set<string>();
+
     // Part 1: Process all devices placed in rooms
     rooms.forEach(room => {
         (room.devices || []).forEach(instance => {
+            if (processedInstances.has(instance.instanceId)) return;
+
             if (instance.isOwned === false) { 
                 const device = allDevicesMap.get(instance.deviceId);
                 if (device) {
                     itemsToBuy.push({
+                        brand: device.brand,
                         baseName: device.name,
                         customName: instance.customName,
                         price: device.price || 0,
@@ -151,18 +157,21 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                     });
                 }
             }
+            processedInstances.add(instance.instanceId);
         });
     });
 
-    // Part 2: Process house-level gateways that might not be in a room
-    const deviceIdsInRooms = new Set(rooms.flatMap(r => r.devices?.map(d => d.deviceId) || []));
-
+    // Part 2: Process house-level gateways that might not be in a room and are not owned
     assignedGateways.forEach(gateway => {
-        if (!deviceIdsInRooms.has(gateway.id)) {
-            if ((gateway.quantity || 0) < 1) {
+        const isPlacedInAnyRoom = rooms.some(r => r.devices?.some(d => d.deviceId === gateway.id));
+
+        if (!isPlacedInAnyRoom) {
+            // If the gateway is not placed anywhere, we check its base 'quantity' property.
+            if ((gateway.quantity || 0) === 0) {
                  itemsToBuy.push({
+                    brand: gateway.brand,
                     baseName: gateway.name,
-                    customName: gateway.name,
+                    customName: gateway.name, // For house-level gateways, custom name is the same as base name
                     price: gateway.price || 0,
                     type: 'gateway' as const,
                     link: gateway.link,
