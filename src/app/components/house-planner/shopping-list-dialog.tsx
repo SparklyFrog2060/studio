@@ -57,7 +57,7 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
           <div key={`${title}-${index}`} className="flex justify-between items-center text-sm py-2 border-b border-dashed">
             <div className="flex items-center gap-2">
               <div>
-                <span>{item.brand} {item.baseName}</span>
+                <span className="font-semibold">{item.brand} {item.baseName}</span>
                 {item.customName && item.customName !== item.baseName && (
                     <span className="text-muted-foreground ml-1">({item.customName})</span>
                 )}
@@ -77,7 +77,7 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-mono tracking-widest uppercase">{t.shoppingList}</DialogTitle>
           <DialogDescription className="text-center font-mono">
