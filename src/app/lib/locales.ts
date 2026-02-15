@@ -120,6 +120,8 @@ export const locales = {
     roomNamePlaceholder: "e.g., Living Room",
     noFloors: "No floors have been added yet.",
     noRooms: "No rooms on this floor.",
+    noRoomsInHouse: "No rooms have been added yet.",
+    clickToAddRoom: 'Click "Add Room" to get started.',
     assignDevices: "Assign Devices",
     noDevicesAssigned: "No devices assigned to this room.",
     shoppingList: "Shopping List",
@@ -132,7 +134,8 @@ export const locales = {
     dark: "Dark",
     system: "System",
     mapView: "Map View",
-    listView: "List View",
+    floorView: "Floor View",
+    gridView: "Grid View",
     tuyaCloud: "Tuya Cloud",
     localIntegration: "Local Integration",
     noDevicesOfThisType: "No devices of this type have been created.",
@@ -270,6 +273,8 @@ export const locales = {
     roomNamePlaceholder: "np. Salon",
     noFloors: "Nie dodano jeszcze żadnych pięter.",
     noRooms: "Brak pomieszczeń na tym piętrze.",
+    noRoomsInHouse: "Nie dodano jeszcze żadnych pomieszczeń.",
+    clickToAddRoom: 'Kliknij "Dodaj Pomieszczenie", aby rozpocząć.',
     assignDevices: "Przypisz Urządzenia",
     noDevicesAssigned: "Brak przypisanych urządzeń do tego pokoju.",
     shoppingList: "Lista Zakupów",
@@ -282,7 +287,8 @@ export const locales = {
     dark: "Ciemny",
     system: "Systemowy",
     mapView: "Widok Mapy",
-    listView: "Widok Listy",
+    floorView: "Widok Pięter",
+    gridView: "Widok Siatki",
     tuyaCloud: "Chmura Tuya",
     localIntegration: "Lokalna Integracja",
     noDevicesOfThisType: "Nie utworzono żadnych urządzeń tego typu.",
@@ -302,3 +308,5 @@ export const locales = {
 };
 
 export type Locale = keyof typeof locales;
+
+    

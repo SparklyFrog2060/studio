@@ -11,7 +11,7 @@ import { updateHouseConfig } from "@/lib/firebase/house";
 import { useLocale } from "@/app/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, List, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Wallet, Receipt, Router, Mic, Map as MapIcon, ListTree, Grid, Eye, EyeOff } from "lucide-react";
 import AddFloorDialog from "./add-floor-dialog";
 import AddRoomDialog from "./add-room-dialog";
 import EditRoomDialog from "./edit-room-dialog";
@@ -23,6 +23,7 @@ import { doc } from "firebase/firestore";
 import MindMapView from "./mind-map-view";
 import { addRoomTemplate } from "@/lib/firebase/room-templates";
 import SaveRoomAsTemplateDialog from "./save-room-as-template-dialog";
+import RoomCard from "./room-card";
 
 interface ShoppingListItem {
   brand: string;
@@ -65,7 +66,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
   const [roomToTemplate, setRoomToTemplate] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
-  const [plannerView, setPlannerView] = useState<'list' | 'map'>('list');
+  const [plannerView, setPlannerView] = useState<'list' | 'map' | 'grid'>('list');
 
   const allDevicesMap = useMemo(() => {
     const map = new Map<string, BaseDevice & {type: string}>();
@@ -144,7 +145,6 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     const itemsToBuy: ShoppingListItem[] = [];
     const processedInstances = new Set<string>();
 
-    // Part 1: Process all devices placed in rooms
     rooms.forEach(room => {
         (room.devices || []).forEach(instance => {
             if (processedInstances.has(instance.instanceId)) return;
@@ -166,22 +166,19 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         });
     });
 
-    // Part 2: Process house-level gateways that might not be in a room and are not owned
     assignedGateways.forEach(gateway => {
         const isPlacedInAnyRoom = rooms.some(r => r.devices?.some(d => d.deviceId === gateway.id));
+        const isOwned = (gateway.quantity || 0) > 0;
 
-        if (!isPlacedInAnyRoom) {
-            // If the gateway is not placed anywhere, we check its base 'quantity' property.
-            if ((gateway.quantity || 0) === 0) {
-                 itemsToBuy.push({
-                    brand: gateway.brand,
-                    baseName: gateway.name,
-                    customName: gateway.name, // For house-level gateways, custom name is the same as base name
-                    price: gateway.price || 0,
-                    type: 'gateway' as const,
-                    link: gateway.link,
-                 });
-            }
+        if (!isPlacedInAnyRoom && !isOwned) {
+             itemsToBuy.push({
+                brand: gateway.brand,
+                baseName: gateway.name,
+                customName: gateway.name,
+                price: gateway.price || 0,
+                type: 'gateway' as const,
+                link: gateway.link,
+             });
         }
     });
 
@@ -330,11 +327,21 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
               {t.shoppingList}
             </Button>
         </div>
-        <div className="flex flex-col sm:flex-row w-full sm:w-auto justify-end gap-2">
-            <Button variant="outline" onClick={() => setPlannerView(v => v === 'list' ? 'map' : 'list')}>
-              {plannerView === 'list' ? <MapIcon className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
-              {plannerView === 'list' ? t.mapView : t.listView}
-            </Button>
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto justify-end items-center gap-2">
+            <div className="flex items-center space-x-1 bg-muted p-1 rounded-lg">
+                <Button variant={plannerView === 'list' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('list')}>
+                    <ListTree className="mr-2 h-4 w-4" />
+                    {t.floorView}
+                </Button>
+                <Button variant={plannerView === 'grid' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('grid')}>
+                    <Grid className="mr-2 h-4 w-4" />
+                    {t.gridView}
+                </Button>
+                <Button variant={plannerView === 'map' ? 'secondary' : 'ghost'} size="sm" onClick={() => setPlannerView('map')}>
+                    <MapIcon className="mr-2 h-4 w-4" />
+                    {t.mapView}
+                </Button>
+            </div>
             <Button onClick={() => setIsAddFloorDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             {t.addFloor}
@@ -350,7 +357,7 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
         </div>
       </div>
       
-      {activeGatewaysForDisplay.length > 0 && plannerView === 'list' && (
+      {activeGatewaysForDisplay.length > 0 && plannerView !== 'map' && (
         <div className="p-4 border rounded-lg bg-card">
             <h3 className="text-lg font-semibold mb-3">{t.activeGateways}</h3>
             <div className="flex flex-wrap gap-4">
@@ -374,39 +381,69 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
 
       {isLoading ? (
         <div className="text-center text-muted-foreground mt-20">Ładowanie...</div>
-      ) : plannerView === 'list' ? (
-        floors && floors.length > 0 ? (
-          <div className="space-y-8">
-            {floors.map(floor => (
-              <FloorSection
-                key={floor.id}
-                floor={floor}
-                rooms={rooms?.filter(room => room.floorId === floor.id) || []}
-                allDevicesMap={allDevicesMap}
-                onEditRoom={setEditingRoom}
-                onDeleteFloor={handleDeleteFloor}
-                onDeleteRoom={handleDeleteRoom}
-                onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
-                houseGatewayProtocols={houseGatewayProtocols}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
-               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><path d="m9 15 3-3 3 3"></path></svg>
-              </div>
-              <h2 className="text-2xl font-semibold text-foreground">{t.noFloors}</h2>
-              <p className="mt-2">Kliknij "Dodaj Piętro", aby rozpocząć.</p>
-          </div>
-        )
       ) : (
-          <MindMapView
-            floors={floors || []}
-            rooms={rooms || []}
-            allDevicesMap={allDevicesMap}
-            activeGateways={activeGatewaysForDisplay}
-          />
+        <>
+          {plannerView === 'list' && (
+             floors && floors.length > 0 ? (
+              <div className="space-y-8">
+                {floors.map(floor => (
+                  <FloorSection
+                    key={floor.id}
+                    floor={floor}
+                    rooms={rooms?.filter(room => room.floorId === floor.id) || []}
+                    allDevicesMap={allDevicesMap}
+                    onEditRoom={setEditingRoom}
+                    onDeleteFloor={handleDeleteFloor}
+                    onDeleteRoom={handleDeleteRoom}
+                    onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
+                    houseGatewayProtocols={houseGatewayProtocols}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><path d="m9 15 3-3 3 3"></path></svg>
+                  </div>
+                  <h2 className="text-2xl font-semibold text-foreground">{t.noFloors}</h2>
+                  <p className="mt-2">Kliknij "Dodaj Piętro", aby rozpocząć.</p>
+              </div>
+            )
+          )}
+          {plannerView === 'grid' && (
+            rooms && rooms.length > 0 ? (
+              <div className="grid gap-4 md:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[...(rooms || [])].sort((a, b) => a.name.localeCompare(b.name)).map(room => (
+                  <RoomCard 
+                    key={room.id} 
+                    room={room} 
+                    allDevicesMap={allDevicesMap}
+                    onEditRoom={setEditingRoom} 
+                    onDeleteRoom={handleDeleteRoom}
+                    onSaveAsTemplate={handleOpenSaveAsTemplateDialog}
+                    houseGatewayProtocols={houseGatewayProtocols}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground mt-20 flex flex-col items-center">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2Z"></path><path d="M6 18h12"></path><path d="M12 18V6"></path></svg>
+                  </div>
+                  <h2 className="text-2xl font-semibold text-foreground">{t.noRoomsInHouse}</h2>
+                  <p className="mt-2">{t.clickToAddRoom}</p>
+              </div>
+            )
+          )}
+          {plannerView === 'map' && (
+            <MindMapView
+              floors={floors || []}
+              rooms={rooms || []}
+              allDevicesMap={allDevicesMap}
+              activeGateways={activeGatewaysForDisplay}
+            />
+          )}
+        </>
       )}
 
       <AddFloorDialog
@@ -463,3 +500,5 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     </div>
   );
 }
+
+    
