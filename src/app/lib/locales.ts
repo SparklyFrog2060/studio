@@ -162,6 +162,8 @@ export const locales = {
     resetPlan: "Reset Plan",
     defineRoom: "Define Room",
     nameYourRoom: "Name Your Room",
+    smallScreenTitle: "Small Screen Notice",
+    smallScreenWarning: "The floor plan editor is best experienced on a larger screen for full functionality.",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -325,6 +327,8 @@ export const locales = {
     resetPlan: "Resetuj Plan",
     defineRoom: "Definiuj Pomieszczenie",
     nameYourRoom: "Nazwij swoje pomieszczenie",
+    smallScreenTitle: "Informacja o małym ekranie",
+    smallScreenWarning: "Edytor planu piętra jest najlepiej przystosowany do większych ekranów, aby zapewnić pełną funkcjonalność.",
   },
 };
 

@@ -7,9 +7,10 @@ import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, CaseUpper, Eraser } from 'lucide-react';
+import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, CaseUpper, Eraser, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type PlanMode = 'draw-wall' | 'draw-room' | 'place-device' | 'delete-wall';
 
@@ -186,8 +187,21 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         
         let endPos = pos;
         if (mode === 'draw-wall') {
-            endPos = findSnapPoint(pos);
-            setSnapIndicatorPos(endPos !== pos ? endPos : null);
+            const snappedPos = findSnapPoint(pos);
+            
+            if (snappedPos !== pos) { // Priority to snapping
+                endPos = snappedPos;
+                setSnapIndicatorPos(snappedPos);
+            } else { // Fallback to orthogonal drawing
+                const dx = pos.x - startPos.x;
+                const dy = pos.y - startPos.y;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    endPos = { x: pos.x, y: startPos.y };
+                } else {
+                    endPos = { x: startPos.x, y: pos.y };
+                }
+                setSnapIndicatorPos(null);
+            }
         }
 
         setCurrentShape({ start: startPos, end: endPos });
@@ -307,6 +321,13 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
 
     return (
         <>
+        <Alert variant="destructive" className="md:hidden mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{t.smallScreenTitle}</AlertTitle>
+            <AlertDescription>
+                {t.smallScreenWarning}
+            </AlertDescription>
+        </Alert>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-20rem)]">
             <div className="lg:col-span-3 flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
