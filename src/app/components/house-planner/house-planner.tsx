@@ -216,17 +216,12 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     }
   };
 
-  const handleUpdateFloorLayout = async (floorId: string, layout: FloorLayout) => {
+  const handleUpdateFloorLayout = (floorId: string, layout: FloorLayout) => {
     if (!db) return;
-    setIsSaving(true);
-    try {
-      await updateFloor(db, floorId, { layout });
-      toast({ title: "Sukces!", description: "Plan piętra został zapisany." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zapisać planu piętra." });
-    } finally {
-        setIsSaving(false);
-    }
+    updateFloor(db, floorId, { layout }).catch((error) => {
+      console.error("Błąd automatycznego zapisu:", error);
+      toast({ variant: "destructive", title: "Błąd automatycznego zapisu", description: "Nie udało się zapisać planu piętra." });
+    });
   }
 
   const handleDeleteFloor = async (floorId: string) => {
@@ -473,7 +468,6 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
                     onSaveLayout={handleUpdateFloorLayout}
                     onAddRoom={handleAddRoomFromPlan}
                     onUpdateRoom={handleUpdateRoom}
-                    isSaving={isSaving}
                   />
                 )}
               </div>
@@ -552,3 +546,5 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     </div>
   );
 }
+
+    

@@ -7,7 +7,7 @@ import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { PencilRuler, Save, RefreshCw, Shapes, Eraser, AlertTriangle, Trash2, X } from 'lucide-react';
+import { PencilRuler, RefreshCw, Shapes, Eraser, AlertTriangle, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -28,13 +28,12 @@ interface FloorPlanProps {
     onSaveLayout: (floorId: string, layout: FloorLayout) => void;
     onAddRoom: (room: Omit<Room, 'id' | 'createdAt' | 'devices'>) => void;
     onUpdateRoom: (roomId: string, data: Partial<Omit<Room, 'id'>>) => void;
-    isSaving: boolean;
 }
 
 const SNAP_THRESHOLD = 10;
 const GRID_SIZE = 20;
 
-export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, onAddRoom, onUpdateRoom, isSaving }: FloorPlanProps) {
+export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, onAddRoom, onUpdateRoom }: FloorPlanProps) {
     const { t } = useLocale();
     const canvasRef = useRef<HTMLDivElement>(null);
     const [walls, setWalls] = useState<Wall[]>(floor.layout?.walls || []);
@@ -62,6 +61,17 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         dragStartPointerPos: { x: number; y: number };
         dragStartDevicePos: { x: number; y: number };
     } | null>(null);
+
+    const isInitialMount = useRef(true);
+
+    useEffect(() => {
+        // Prevent saving on initial render
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        onSaveLayout(floor.id, { walls });
+    }, [walls, floor.id, onSaveLayout]);
     
     useEffect(() => {
         setWalls(floor.layout?.walls || []);
@@ -378,7 +388,6 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         setMode('draw-wall');
     };
 
-    const handleSave = () => onSaveLayout(floor.id, { walls });
     const handleReset = () => setWalls([]);
     
     const handleUpdateDeviceDetails = () => {
@@ -437,7 +446,6 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                     <Button variant={mode === 'draw-wall' ? 'secondary' : 'outline'} onClick={() => setMode('draw-wall')}><PencilRuler className="mr-2"/> {t.drawWall}</Button>
                     <Button variant={mode === 'draw-room' ? 'secondary' : 'outline'} onClick={startDefineRoom}><Shapes className="mr-2"/> {t.defineRoom}</Button>
                     <Button variant={mode === 'delete-wall' ? 'destructive' : 'outline'} onClick={() => setMode('delete-wall')}><Eraser className="mr-2"/> {t.deleteWall}</Button>
-                    <Button onClick={handleSave} disabled={isSaving}><Save className="mr-2"/> {t.savePlan}</Button>
                     <Button onClick={handleReset} variant="destructive"><RefreshCw className="mr-2"/> {t.resetPlan}</Button>
                 </div>
                 <div
@@ -584,3 +592,5 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         </>
     );
 }
+
+    
