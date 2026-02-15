@@ -22,7 +22,8 @@ import { doc } from "firebase/firestore";
 import MindMapView from "./mind-map-view";
 
 interface ShoppingListItem {
-  name: string;
+  baseName: string;
+  customName: string;
   price: number;
   type: 'sensor' | 'switch' | 'voice-assistant' | 'lighting' | 'other-device' | 'gateway';
   link?: string;
@@ -138,12 +139,12 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     // Part 1: Process all devices placed in rooms
     rooms.forEach(room => {
         (room.devices || []).forEach(instance => {
-            // An item should be on the shopping list if it's NOT marked as owned.
             if (instance.isOwned === false) { 
                 const device = allDevicesMap.get(instance.deviceId);
                 if (device) {
                     itemsToBuy.push({
-                        name: instance.customName || device.name, // Use custom name if available
+                        baseName: device.name,
+                        customName: instance.customName,
                         price: device.price || 0,
                         type: device.type as ShoppingListItem['type'],
                         link: device.link,
@@ -157,12 +158,11 @@ export default function HousePlanner({ setActiveView }: HousePlannerProps) {
     const deviceIdsInRooms = new Set(rooms.flatMap(r => r.devices?.map(d => d.deviceId) || []));
 
     assignedGateways.forEach(gateway => {
-        // Only consider this gateway if it's not already handled as a room device
         if (!deviceIdsInRooms.has(gateway.id)) {
-            // If the user doesn't own any quantity of this gateway, it must be bought.
             if ((gateway.quantity || 0) < 1) {
                  itemsToBuy.push({
-                    name: gateway.name,
+                    baseName: gateway.name,
+                    customName: gateway.name,
                     price: gateway.price || 0,
                     type: 'gateway' as const,
                     link: gateway.link,

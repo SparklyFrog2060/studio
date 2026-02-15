@@ -14,7 +14,8 @@ import { useLocale } from "@/app/components/locale-provider";
 import { Link as LinkIcon } from "lucide-react";
 
 interface ShoppingListItem {
-  name: string;
+  baseName: string;
+  customName: string;
   price: number;
   type: 'sensor' | 'switch' | 'voice-assistant' | 'lighting' | 'other-device' | 'gateway';
   link?: string;
@@ -53,9 +54,14 @@ export default function ShoppingListDialog({ isOpen, onOpenChange, items, totalP
         {sectionItems.map((item, index) => (
           <div key={`${title}-${index}`} className="flex justify-between items-center text-sm py-2 border-b border-dashed">
             <div className="flex items-center gap-2">
-              <span>{item.name}</span>
+              <div>
+                <span>{item.baseName}</span>
+                {item.customName && item.customName !== item.baseName && (
+                    <span className="text-muted-foreground ml-1">({item.customName})</span>
+                )}
+              </div>
               {item.link && (
-                <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label={`Link do ${item.name}`}>
+                <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label={`Link do ${item.baseName}`}>
                   <LinkIcon className="h-3 w-3 text-muted-foreground hover:text-primary transition-colors" />
                 </a>
               )}
