@@ -80,6 +80,7 @@ export interface Room {
     width: number;
     height: number;
   };
+  polygon?: { x: number, y: number }[];
 }
 
 export interface FloorLayout {
