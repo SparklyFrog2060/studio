@@ -7,28 +7,19 @@ import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, Shapes, Eraser, AlertTriangle, Trash2 } from 'lucide-react';
+import { PencilRuler, Save, RefreshCw, Shapes, Eraser, AlertTriangle, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DeviceIcon } from './device-icon';
+import IconPicker from './icon-picker';
 
 type PlanMode = 'draw-wall' | 'draw-room' | 'place-device' | 'delete-wall';
 const DRAG_THRESHOLD = 5;
-
-const DeviceIcon = ({ type, ...props }: { type: string } & React.ComponentProps<typeof Thermometer>) => {
-    switch (type) {
-        case 'sensor': return <Thermometer {...props} />;
-        case 'switch': return <ToggleRight {...props} />;
-        case 'lighting': return <Lightbulb {...props} />;
-        case 'other-device': return <Box {...props} />;
-        case 'voice-assistant': return <Mic {...props} />;
-        case 'gateway': return <Box {...props} />;
-        default: return <Box {...props} />;
-    }
-};
+const ICON_COLORS = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#8B5CF6', '#FFFFFF'];
 
 interface FloorPlanProps {
     floor: Floor;
@@ -62,6 +53,8 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
     const [localRooms, setLocalRooms] = useState<Room[]>(rooms);
     const [popoverState, setPopoverState] = useState<{ open: boolean; device: RoomDevice | null; room: Room | null; x: number, y: number }>({ open: false, device: null, room: null, x: 0, y: 0 });
     const [editedName, setEditedName] = useState('');
+    const [editedIcon, setEditedIcon] = useState<string | undefined>();
+    const [editedColor, setEditedColor] = useState<string | undefined>();
     const [dragState, setDragState] = useState<{
         device: RoomDevice;
         room: Room;
@@ -314,6 +307,8 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                     y: dragState.device.y || 0,
                 });
                 setEditedName(dragState.device.customName);
+                setEditedIcon(dragState.device.icon);
+                setEditedColor(dragState.device.iconColor);
             } else { // Drag end
                 const finalDeviceState = localRooms.find(r => r.id === dragState.room.id)?.devices.find(d => d.instanceId === dragState.device.instanceId);
                 if (finalDeviceState) {
@@ -386,12 +381,12 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
     const handleSave = () => onSaveLayout(floor.id, { walls });
     const handleReset = () => setWalls([]);
     
-    const handleRenameDevice = () => {
+    const handleUpdateDeviceDetails = () => {
         const { device, room } = popoverState;
         if (!device || !room) return;
 
         const updatedDevices = room.devices.map(d =>
-            d.instanceId === device.instanceId ? { ...d, customName: editedName } : d
+            d.instanceId === device.instanceId ? { ...d, customName: editedName, icon: editedIcon, iconColor: editedColor } : d
         );
         onUpdateRoom(room.id, { devices: updatedDevices });
         setPopoverState({ open: false, device: null, room: null, x: 0, y: 0 });
@@ -462,7 +457,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                 >
                      <Popover open={popoverState.open} onOpenChange={(isOpen) => setPopoverState(p => ({ ...p, open: isOpen }))}>
                         <PopoverAnchor style={{ position: 'absolute', top: popoverState.y, left: popoverState.x }} />
-                        <PopoverContent className="w-60" onOpenAutoFocus={e => e.preventDefault()}>
+                        <PopoverContent className="w-80" onOpenAutoFocus={e => e.preventDefault()}>
                             <div className="grid gap-4">
                                 <div className="space-y-2">
                                     <h4 className="font-medium leading-none">{t.editDevice}</h4>
@@ -471,9 +466,28 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                                 <div className="grid gap-2">
                                     <Label htmlFor="deviceName">{t.specName}</Label>
                                     <Input id="deviceName" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
-                                    <Button onClick={handleRenameDevice}>{t.saveChanges}</Button>
                                 </div>
-                                <Button variant="destructive" onClick={handleDeleteDevice}><Trash2 className="mr-2 h-4 w-4" />{t.delete}</Button>
+                                <div>
+                                    <Label>{'Ikona'}</Label>
+                                    <IconPicker onSelect={setEditedIcon} selectedIcon={editedIcon} />
+                                </div>
+                                <div>
+                                    <Label>{'Kolor ikony'}</Label>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {ICON_COLORS.map(color => (
+                                            <button key={color} onClick={() => setEditedColor(color)} className={cn("w-6 h-6 rounded-full border", editedColor === color && "ring-2 ring-ring ring-offset-2")}>
+                                                <div className="w-full h-full rounded-full" style={{ backgroundColor: color }} />
+                                            </button>
+                                        ))}
+                                        <button onClick={() => setEditedColor(undefined)} className="w-6 h-6 rounded-full border flex items-center justify-center text-muted-foreground" title="Domyślny kolor">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                    <Button onClick={handleUpdateDeviceDetails}>{t.saveChanges}</Button>
+                                    <Button variant="destructive" size="sm" onClick={handleDeleteDevice}><Trash2 className="mr-2 h-4 w-4" />{t.delete}</Button>
+                                </div>
                             </div>
                         </PopoverContent>
                     </Popover>
@@ -517,12 +531,16 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                         if (!baseDevice || typeof device.x === 'undefined' || typeof device.y === 'undefined') return null;
                         const room = localRooms.find(r => r.devices.some(d => d.instanceId === device.instanceId))!;
                         return (
-                             <div key={device.instanceId} 
-                                className="absolute p-1 bg-background border rounded-md shadow-lg cursor-grab active:cursor-grabbing" 
+                             <div 
+                                key={device.instanceId} 
+                                className="absolute flex flex-col items-center group/device"
                                 style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
                                 onPointerDown={(e) => handleDevicePointerDown(e, device, room)}
                             >
-                                <DeviceIcon type={baseDevice.type} className="h-5 w-5"/>
+                                <div className="p-1 bg-background/80 border rounded-full shadow-lg cursor-grab active:cursor-grabbing">
+                                    <DeviceIcon icon={device.icon} type={baseDevice.type} className="h-5 w-5" style={{ color: device.iconColor }}/>
+                                </div>
+                                <span className="mt-1 px-1.5 py-0.5 text-xs bg-background/80 rounded-md shadow whitespace-nowrap">{device.customName}</span>
                             </div>
                         )
                     })}
@@ -566,6 +584,3 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         </>
     );
 }
-
-
-    

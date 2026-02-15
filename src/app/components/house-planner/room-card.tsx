@@ -10,6 +10,7 @@ import { useLocale } from "../locale-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { DeviceIcon } from "./device-icon";
 
 
 interface RoomCardProps {
@@ -27,25 +28,6 @@ interface MissingGatewayDetails {
   protocol: string;
   devices: { name: string }[];
 }
-
-const typeToColorClass: Record<string, string> = {
-    'sensor': 'text-blue-500',
-    'switch': 'text-green-500',
-    'lighting': 'text-yellow-500',
-    'other-device': 'text-purple-500',
-    'voice-assistant': 'text-sky-500',
-};
-
-const DeviceIcon = ({ type, ...props }: {type: string} & React.ComponentProps<typeof Thermometer>) => {
-    switch (type) {
-        case 'sensor': return <Thermometer {...props} />;
-        case 'switch': return <ToggleRight {...props} />;
-        case 'lighting': return <Lightbulb {...props} />;
-        case 'other-device': return <Box {...props} />;
-        case 'voice-assistant': return <Mic {...props} />;
-        default: return <Box {...props} />;
-    }
-};
 
 export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom, onSaveAsTemplate, houseGatewayProtocols }: RoomCardProps) {
   const { t } = useLocale();
@@ -137,7 +119,12 @@ export default function RoomCard({ room, allDevicesMap, onEditRoom, onDeleteRoom
                     {devicesInRoom.map(item => (
                         <li key={item.instanceId} className="flex items-center justify-between gap-2 text-sm">
                             <div className="flex items-center gap-2 overflow-hidden">
-                                <DeviceIcon type={item.baseDevice!.type} className={cn("h-4 w-4 shrink-0", typeToColorClass[item.baseDevice!.type] || 'text-muted-foreground')} />
+                                <DeviceIcon 
+                                  type={item.baseDevice!.type} 
+                                  icon={item.icon} 
+                                  className="h-4 w-4 shrink-0" 
+                                  style={{color: item.iconColor}}
+                                />
                                 <span className="truncate" title={item.customName}>{item.customName}</span>
                             </div>
                             {!item.isOwned && item.baseDevice?.price != null && item.baseDevice.price > 0 && (

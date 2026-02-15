@@ -68,6 +68,8 @@ const formSchema = z.object({
     deviceId: z.string(),
     customName: z.string(),
     isOwned: z.boolean().default(false),
+    icon: z.string().optional(),
+    iconColor: z.string().optional(),
   })),
 });
 

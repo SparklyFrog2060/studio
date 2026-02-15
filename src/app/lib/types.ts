@@ -66,6 +66,8 @@ export interface RoomDevice {
   isOwned: boolean;
   x?: number;
   y?: number;
+  icon?: string;
+  iconColor?: string;
 }
 
 export interface Room {

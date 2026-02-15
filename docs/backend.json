@@ -708,6 +708,22 @@
               "isOwned": {
                 "type": "boolean",
                 "description": "Indicates if this specific device instance is one that the user already owns."
+              },
+              "x": {
+                "type": "number",
+                "description": "The x-coordinate of the device on the floor plan."
+              },
+              "y": {
+                "type": "number",
+                "description": "The y-coordinate of the device on the floor plan."
+              },
+              "icon": {
+                "type": "string",
+                "description": "The name of the lucide-react icon for the device."
+              },
+              "iconColor": {
+                "type": "string",
+                "description": "The color of the device icon."
               }
             },
             "required": ["instanceId", "deviceId", "customName", "isOwned"]
