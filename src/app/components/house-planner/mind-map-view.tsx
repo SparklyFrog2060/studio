@@ -135,7 +135,7 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
             observer.unobserve(currentRef);
         }
     };
-  }, [floors, rooms, allDevicesMap, activeGateways, isInternetOffline]);
+  }, [floors, rooms, allDevicesMap, activeGateways, isInternetOffline, hiddenRoomIds]);
   
   const midLevelNodes = useMemo(() => {
     const nodes: UnifiedGatewayNode[] = [...gatewayNodes];
@@ -175,21 +175,42 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     const newLines: Line[] = [];
 
     rooms.forEach(room => {
-        if (hiddenRoomIds.has(room.id)) return; // Don't draw lines for hidden rooms
+        if (hiddenRoomIds.has(room.id)) return;
 
-        const protocolsInRoom = new Map<string, string>(); // Map protocol to a target gateway ID
+        const protocolsInRoom = new Map<string, string>();
+
+        const localGatewaysInThisRoom = (room.devices || [])
+            .map(instance => allDevicesMap.get(instance.deviceId))
+            .filter((device): device is (Gateway | VoiceAssistant) => 
+                !!device && (device.type === 'gateway' || (device.type === 'voice-assistant' && !!(device as VoiceAssistant).isGateway))
+            );
+
+        const localProtocolsMap = new Map<string, string>();
+        localGatewaysInThisRoom.forEach(gw => {
+            const deviceProtocols = 'connectivity' in gw ? gw.connectivity : gw.gatewayProtocols || [];
+            deviceProtocols.forEach(p => localProtocolsMap.set(p as string, gw.id));
+        });
 
         (room.devices || []).forEach(instance => {
             const device = allDevicesMap.get(instance.deviceId);
             if (!device) return;
 
+            if (device.type === 'gateway' || (device.type === 'voice-assistant' && (device as VoiceAssistant).isGateway)) {
+                return;
+            }
+
             const protocol = getDeviceProtocol(device as any);
             if (!protocol) return;
 
             let targetNodeId: string | undefined;
+
             if (protocol === 'matter' || protocol === 'zigbee') {
-                const suitableGateway = gatewayNodes.find(g => g.protocols.includes(protocol as GatewayConnectivity));
-                targetNodeId = suitableGateway?.id;
+                if (localProtocolsMap.has(protocol)) {
+                    targetNodeId = localProtocolsMap.get(protocol);
+                } else {
+                    const suitableGateway = gatewayNodes.find(g => g.protocols.includes(protocol as GatewayConnectivity));
+                    targetNodeId = suitableGateway?.id;
+                }
             } else if (protocol === 'tuya') {
                 targetNodeId = 'cloud_tuya';
             } else if (protocol === 'wifi') {
@@ -208,10 +229,10 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
         protocolsInRoom.forEach((targetId, protocol) => {
             const isCloudProtocol = protocol === 'tuya' || protocol === 'other_app';
             if (isInternetOffline && isCloudProtocol) {
-                return; // Don't draw line if internet is off
+                return;
             }
             newLines.push({
-                from: room.id, // Draw line from the room card
+                from: room.id,
                 to: targetId,
                 color: PROTOCOL_COLORS[protocol] || 'gray',
             });
@@ -221,8 +242,19 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
     midLevelNodes.forEach(node => {
         const isCloudNode = node.id === 'cloud_tuya' || node.id === 'local_other_app';
         if (isInternetOffline && isCloudNode) {
-            return; // Don't draw lines from offline cloud services
+            return;
         }
+        // Don't draw line from a gateway to home assistant if it's inside a hidden room
+        const gatewayDevice = allDevicesMap.get(node.id);
+        if (gatewayDevice) {
+            const roomOfGateway = rooms.find(r => r.devices.some(d => d.deviceId === node.id));
+            if (roomOfGateway && hiddenRoomIds.has(roomOfGateway.id)) {
+                 // But we should draw connections for global gateways not in rooms
+                const isGlobalGateway = !rooms.some(r => r.devices.some(d => d.deviceId === node.id));
+                if (!isGlobalGateway) return;
+            }
+        }
+        
         newLines.push({
             from: node.id,
             to: 'home_assistant',
@@ -265,6 +297,11 @@ export default function MindMapView({ floors, rooms, allDevicesMap, activeGatewa
                     const isVoiceAssistant = activeGateways.some(d => d.id === node.id && !('connectivity' in d));
 
                     const isNodeOffline = isInternetOffline && (isCloudNode || isVoiceAssistant);
+                    
+                    const roomOfGateway = rooms.find(r => r.devices.some(d => d.deviceId === node.id));
+                    if (roomOfGateway && hiddenRoomIds.has(roomOfGateway.id)) {
+                        return null;
+                    }
 
                     return (
                         <div key={node.id} ref={el => nodeRefs.current[node.id] = el} className={cn(
