@@ -164,6 +164,7 @@ export const locales = {
     nameYourRoom: "Name Your Room",
     smallScreenTitle: "Small Screen Notice",
     smallScreenWarning: "The floor plan editor is best experienced on a larger screen for full functionality.",
+    editDevice: "Edit Device",
   },
   pl: {
     appName: "Smart-Architekt",
@@ -329,7 +330,11 @@ export const locales = {
     nameYourRoom: "Nazwij swoje pomieszczenie",
     smallScreenTitle: "Informacja o małym ekranie",
     smallScreenWarning: "Edytor planu piętra jest najlepiej przystosowany do większych ekranów, aby zapewnić pełną funkcjonalność.",
+    editDevice: "Edytuj urządzenie",
   },
 };
 
 export type Locale = keyof typeof locales;
+
+
+    

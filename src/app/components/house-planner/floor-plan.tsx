@@ -7,12 +7,16 @@ import { useLocale } from '../locale-provider';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, Shapes, Eraser, AlertTriangle } from 'lucide-react';
+import { Thermometer, ToggleRight, Lightbulb, Box, Mic, PencilRuler, Save, RefreshCw, Shapes, Eraser, AlertTriangle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRoomFromPlanDialog from './add-room-from-plan-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type PlanMode = 'draw-wall' | 'draw-room' | 'place-device' | 'delete-wall';
+const DRAG_THRESHOLD = 5;
 
 const DeviceIcon = ({ type, ...props }: { type: string } & React.ComponentProps<typeof Thermometer>) => {
     switch (type) {
@@ -43,7 +47,6 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
     const { t } = useLocale();
     const canvasRef = useRef<HTMLDivElement>(null);
     const [walls, setWalls] = useState<Wall[]>(floor.layout?.walls || []);
-    const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState<{ x: number, y: number } | null>(null);
     const [currentShape, setCurrentShape] = useState<{ start: {x:number, y:number}, end: {x:number, y:number} } | null>(null);
     const [selectedDeviceForPlacing, setSelectedDeviceForPlacing] = useState<string | null>(null);
@@ -55,6 +58,24 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
     
     const [snapIndicatorPos, setSnapIndicatorPos] = useState<{ x: number, y: number } | null>(null);
     const [mousePos, setMousePos] = useState<{x: number, y: number} | null>(null);
+    
+    const [localRooms, setLocalRooms] = useState<Room[]>(rooms);
+    const [popoverState, setPopoverState] = useState<{ open: boolean; device: RoomDevice | null; room: Room | null; x: number, y: number }>({ open: false, device: null, room: null, x: 0, y: 0 });
+    const [editedName, setEditedName] = useState('');
+    const [dragState, setDragState] = useState<{
+        device: RoomDevice;
+        room: Room;
+        isDragging: boolean;
+        dragStartPointerPos: { x: number; y: number };
+        dragStartDevicePos: { x: number; y: number };
+    } | null>(null);
+    
+    useEffect(() => {
+        setWalls(floor.layout?.walls || []);
+        if (!dragState) {
+            setLocalRooms(rooms);
+        }
+    }, [floor, rooms, dragState]);
     
     const snapToGrid = (pos: { x: number, y: number }): { x: number, y: number } => {
         return {
@@ -128,6 +149,18 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         }
         return closestWall;
     };
+    
+    const handleDevicePointerDown = (e: React.MouseEvent | React.TouchEvent, device: RoomDevice, room: Room) => {
+        e.stopPropagation();
+        const pointerEvent = (e as React.TouchEvent).touches ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+        setDragState({
+            device,
+            room,
+            isDragging: false,
+            dragStartPointerPos: { x: pointerEvent.clientX, y: pointerEvent.clientY },
+            dragStartDevicePos: { x: device.x!, y: device.y! },
+        });
+    };
 
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
         const pos = getEventCoordinates(e);
@@ -141,7 +174,7 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
 
         if (mode === 'place-device' && selectedDeviceForPlacing) {
             e.preventDefault();
-            const targetRoom = rooms.find(r => r.bounds && pos.x >= r.bounds.x && pos.x <= r.bounds.x + r.bounds.width && pos.y >= r.bounds.y && pos.y <= r.bounds.y + r.bounds.height);
+            const targetRoom = localRooms.find(r => r.polygon && isPointInPolygon(pos, r.polygon));
             
             if (targetRoom) {
                 const baseDevice = allDevicesMap.get(selectedDeviceForPlacing);
@@ -183,13 +216,47 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
             e.preventDefault();
             const snappedPos = findSnapPoint(pos);
             setSnapIndicatorPos(snappedPos !== snapToGrid(pos) ? snappedPos : null);
-            setIsDrawing(true);
             setStartPos(snappedPos);
             setCurrentShape({ start: snappedPos, end: snappedPos });
         }
     };
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
+        const pointerEvent = (e as React.TouchEvent).touches ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+        
+        if (dragState) {
+            e.preventDefault();
+            const dx = pointerEvent.clientX - dragState.dragStartPointerPos.x;
+            const dy = pointerEvent.clientY - dragState.dragStartPointerPos.y;
+
+            if (!dragState.isDragging && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+                setDragState(prev => prev ? { ...prev, isDragging: true } : null);
+                setPopoverState(prev => ({...prev, open: false})); 
+            }
+
+            setLocalRooms(prevRooms => {
+                return prevRooms.map(r => {
+                    if (r.id === dragState.room.id) {
+                        return {
+                            ...r,
+                            devices: r.devices.map(d => {
+                                if (d.instanceId === dragState.device.instanceId) {
+                                    return {
+                                        ...d,
+                                        x: dragState.dragStartDevicePos.x + dx,
+                                        y: dragState.dragStartDevicePos.y + dy,
+                                    };
+                                }
+                                return d;
+                            })
+                        };
+                    }
+                    return r;
+                });
+            });
+            return;
+        }
+
         const pos = getEventCoordinates(e);
         const snappedToPoint = findSnapPoint(pos, true);
         
@@ -199,10 +266,10 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         }
         setMousePos(finalPos);
         
-        if (!isDrawing || !startPos) return;
-        e.preventDefault();
+        if (!startPos) return;
 
         if (mode === 'draw-wall') {
+            e.preventDefault();
             let endPos;
             const snappedWallEnd = findSnapPoint(pos, true);
 
@@ -211,9 +278,9 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                 setSnapIndicatorPos(endPos);
             } else {
                 const gridPos = snapToGrid(pos);
-                const dx = gridPos.x - startPos.x;
-                const dy = gridPos.y - startPos.y;
-                if (Math.abs(dx) > Math.abs(dy)) {
+                const dx = Math.abs(gridPos.x - startPos.x);
+                const dy = Math.abs(gridPos.y - startPos.y);
+                if (dx > dy) {
                     endPos = { x: gridPos.x, y: startPos.y };
                 } else {
                     endPos = { x: startPos.x, y: gridPos.y };
@@ -223,15 +290,58 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
             setCurrentShape({ start: startPos, end: endPos });
         }
     };
+    
+    const isPointInPolygon = (point: { x: number, y: number }, polygon: { x: number, y: number }[]) => {
+        let isInside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].x, yi = polygon[i].y;
+            const xj = polygon[j].x, yj = polygon[j].y;
+            const intersect = ((yi > point.y) !== (yj > point.y)) && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+            if (intersect) isInside = !isInside;
+        }
+        return isInside;
+    };
+
 
     const handlePointerUp = () => {
+        if (dragState) {
+            if (!dragState.isDragging) { // Click
+                setPopoverState({
+                    open: true,
+                    device: dragState.device,
+                    room: dragState.room,
+                    x: dragState.device.x || 0,
+                    y: dragState.device.y || 0,
+                });
+                setEditedName(dragState.device.customName);
+            } else { // Drag end
+                const finalDeviceState = localRooms.find(r => r.id === dragState.room.id)?.devices.find(d => d.instanceId === dragState.device.instanceId);
+                if (finalDeviceState) {
+                    const droppedPos = { x: finalDeviceState.x!, y: finalDeviceState.y! };
+                    const newTargetRoom = localRooms.find(r => r.polygon && isPointInPolygon(droppedPos, r.polygon));
+
+                    if (newTargetRoom && newTargetRoom.id !== dragState.room.id) {
+                        const oldRoomDevices = dragState.room.devices.filter(d => d.instanceId !== dragState.device.instanceId);
+                        onUpdateRoom(dragState.room.id, { devices: oldRoomDevices });
+
+                        const newRoomDevices = [...newTargetRoom.devices, finalDeviceState];
+                        onUpdateRoom(newTargetRoom.id, { devices: newRoomDevices });
+                    } else {
+                        const updatedDevices = localRooms.find(r => r.id === dragState.room.id)!.devices;
+                        onUpdateRoom(dragState.room.id, { devices: updatedDevices });
+                    }
+                }
+            }
+            setDragState(null);
+            return;
+        }
+
         if (mode === 'draw-wall') {
-            if (!isDrawing || !currentShape) return;
+            if (!currentShape || !startPos) return;
             const { start, end } = currentShape;
             if (Math.hypot(end.x - start.x, end.y - start.y) > 5) {
-                setWalls(prev => [...prev, { id: `wall-${Date.now()}`, start, end }]);
+                setWalls(prev => [...prev, { id: crypto.randomUUID(), start, end }]);
             }
-            setIsDrawing(false);
             setStartPos(null);
             setCurrentShape(null);
             setSnapIndicatorPos(null);
@@ -259,17 +369,14 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         const canvas = canvasRef.current;
         if (!deviceId || !canvas) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const targetRoom = rooms.find(r => r.bounds && x >= r.bounds.x && x <= r.bounds.x + r.bounds.width && y >= r.bounds.y && y <= r.bounds.y + r.bounds.height);
+        const pos = getEventCoordinates(e);
+        const targetRoom = localRooms.find(r => r.polygon && isPointInPolygon(pos, r.polygon));
         if (targetRoom) {
             const baseDevice = allDevicesMap.get(deviceId);
             if (!baseDevice) return;
             const newDevice: RoomDevice = {
                 instanceId: crypto.randomUUID(), deviceId,
-                customName: baseDevice.name, isOwned: false, x, y,
+                customName: baseDevice.name, isOwned: false, x:pos.x, y:pos.y,
             };
             onUpdateRoom(targetRoom.id, { devices: [...(targetRoom.devices || []), newDevice] });
         }
@@ -278,6 +385,26 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
 
     const handleSave = () => onSaveLayout(floor.id, { walls });
     const handleReset = () => setWalls([]);
+    
+    const handleRenameDevice = () => {
+        const { device, room } = popoverState;
+        if (!device || !room) return;
+
+        const updatedDevices = room.devices.map(d =>
+            d.instanceId === device.instanceId ? { ...d, customName: editedName } : d
+        );
+        onUpdateRoom(room.id, { devices: updatedDevices });
+        setPopoverState({ open: false, device: null, room: null, x: 0, y: 0 });
+    };
+
+    const handleDeleteDevice = () => {
+        const { device, room } = popoverState;
+        if (!device || !room) return;
+
+        const updatedDevices = room.devices.filter(d => d.instanceId !== device.instanceId);
+        onUpdateRoom(room.id, { devices: updatedDevices });
+        setPopoverState({ open: false, device: null, room: null, x: 0, y: 0 });
+    };
 
     const deviceCategories = useMemo(() => {
         const categories: Record<string, { label: string, devices: (BaseDevice & {type: string})[] }> = {
@@ -319,9 +446,8 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                     <Button onClick={handleReset} variant="destructive"><RefreshCw className="mr-2"/> {t.resetPlan}</Button>
                 </div>
                 <div
-                    ref={canvasRef} onMouseDown={handlePointerDown} onMouseMove={handlePointerMove}
-                    onMouseUp={handlePointerUp} onMouseLeave={handlePointerUp}
-                    onTouchStart={handlePointerDown} onTouchMove={handlePointerMove} onTouchEnd={handlePointerUp}
+                    ref={canvasRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}
                     onDragOver={handleDragOver} onDrop={handleDrop}
                     className={cn(
                         "relative w-full h-full bg-muted/30 rounded-lg overflow-hidden",
@@ -334,9 +460,26 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                         backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
                     }}
                 >
+                     <Popover open={popoverState.open} onOpenChange={(isOpen) => setPopoverState(p => ({ ...p, open: isOpen }))}>
+                        <PopoverAnchor style={{ position: 'absolute', top: popoverState.y, left: popoverState.x }} />
+                        <PopoverContent className="w-60" onOpenAutoFocus={e => e.preventDefault()}>
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">{t.editDevice}</h4>
+                                    <p className="text-sm text-muted-foreground">{popoverState.device?.customName}</p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="deviceName">{t.specName}</Label>
+                                    <Input id="deviceName" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
+                                    <Button onClick={handleRenameDevice}>{t.saveChanges}</Button>
+                                </div>
+                                <Button variant="destructive" onClick={handleDeleteDevice}><Trash2 className="mr-2 h-4 w-4" />{t.delete}</Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                        {rooms.map(room => {
-                            const path = room.polygon ? room.polygon.map(p => `${p.x},${p.y}`).join(' ') : (room.bounds ? `${room.bounds.x},${room.bounds.y} ${room.bounds.x+room.bounds.width},${room.bounds.y} ${room.bounds.x+room.bounds.width},${room.bounds.y+room.bounds.height} ${room.bounds.x},${room.bounds.y+room.bounds.height}` : '');
+                        {localRooms.map(room => {
+                            const path = room.polygon ? room.polygon.map(p => `${p.x},${p.y}`).join(' ') : '';
                             if (!path) return null;
                             return (
                                 <g key={room.id}>
@@ -369,11 +512,16 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
                         )}
                         {snapIndicatorPos && <circle cx={snapIndicatorPos.x} cy={snapIndicatorPos.y} r="8" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />}
                     </svg>
-                    {rooms.flatMap(room => room.devices || []).map(device => {
+                    {localRooms.flatMap(room => (room.devices || [])).map(device => {
                         const baseDevice = allDevicesMap.get(device.deviceId);
                         if (!baseDevice || typeof device.x === 'undefined' || typeof device.y === 'undefined') return null;
+                        const room = localRooms.find(r => r.devices.some(d => d.instanceId === device.instanceId))!;
                         return (
-                            <div key={device.instanceId} className="absolute p-1 bg-background border rounded-md shadow-lg pointer-events-none" style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)' }}>
+                             <div key={device.instanceId} 
+                                className="absolute p-1 bg-background border rounded-md shadow-lg cursor-grab active:cursor-grabbing" 
+                                style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+                                onPointerDown={(e) => handleDevicePointerDown(e, device, room)}
+                            >
                                 <DeviceIcon type={baseDevice.type} className="h-5 w-5"/>
                             </div>
                         )
@@ -418,3 +566,6 @@ export default function FloorPlan({ floor, rooms, allDevicesMap, onSaveLayout, o
         </>
     );
 }
+
+
+    
