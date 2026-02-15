@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -37,33 +36,58 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState<{ x: number, y: number } | null>(null);
     const [currentWall, setCurrentWall] = useState<Wall | null>(null);
+    const [selectedDeviceForPlacing, setSelectedDeviceForPlacing] = useState<string | null>(null);
 
-    const getCanvasCoordinates = (e: React.MouseEvent) => {
+    const getEventCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
+        
+        const touch = (e as React.TouchEvent).touches?.[0];
+        const clientX = touch ? touch.clientX : (e as React.MouseEvent).clientX;
+        const clientY = touch ? touch.clientY : (e as React.MouseEvent).clientY;
+
         return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
+            x: clientX - rect.left,
+            y: clientY - rect.top
         };
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
+        const pos = getEventCoordinates(e);
+
+        if (selectedDeviceForPlacing) {
+            e.preventDefault();
+            const newDevice: PlacedDevice = {
+                instanceId: crypto.randomUUID(),
+                deviceId: selectedDeviceForPlacing,
+                x: pos.x,
+                y: pos.y,
+            };
+            setPlacedDevices(prev => [...prev, newDevice]);
+            setSelectedDeviceForPlacing(null);
+            return;
+        }
+
+        e.preventDefault();
         setIsDrawing(true);
-        const pos = getCanvasCoordinates(e);
         setStartPos(pos);
         setCurrentWall({ id: `wall-${Date.now()}`, start: pos, end: pos });
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!isDrawing || !startPos) return;
-        const pos = getCanvasCoordinates(e);
+        e.preventDefault();
+        const pos = getEventCoordinates(e);
         setCurrentWall({ id: currentWall!.id, start: startPos, end: pos });
     };
 
-    const handleMouseUp = () => {
-        if (currentWall) {
-            setWalls(prev => [...prev, currentWall]);
+    const handlePointerUp = () => {
+        if (isDrawing && currentWall) {
+            const { start, end } = currentWall;
+            if (Math.hypot(end.x - start.x, end.y - start.y) > 5) {
+                setWalls(prev => [...prev, currentWall]);
+            }
         }
         setIsDrawing(false);
         setStartPos(null);
@@ -72,6 +96,9 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
 
     const handleDragStart = (e: React.DragEvent, deviceId: string) => {
         e.dataTransfer.setData('deviceId', deviceId);
+        if (selectedDeviceForPlacing) {
+            setSelectedDeviceForPlacing(null);
+        }
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -137,12 +164,19 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                 </div>
                 <div
                     ref={canvasRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
+                    onMouseDown={handlePointerDown}
+                    onMouseMove={handlePointerMove}
+                    onMouseUp={handlePointerUp}
+                    onMouseLeave={handlePointerUp}
+                    onTouchStart={handlePointerDown}
+                    onTouchMove={handlePointerMove}
+                    onTouchEnd={handlePointerUp}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    className="relative w-full h-full bg-muted/30 rounded-lg overflow-hidden cursor-crosshair"
+                    className={cn(
+                        "relative w-full h-full bg-muted/30 rounded-lg overflow-hidden",
+                        selectedDeviceForPlacing ? 'cursor-copy' : 'cursor-crosshair'
+                    )}
                     style={{
                         backgroundImage:
                             'linear-gradient(rgba(128,128,128,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.2) 1px, transparent 1px)',
@@ -177,7 +211,7 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                         const baseDevice = allDevicesMap.get(device.deviceId);
                         if (!baseDevice) return null;
                         return (
-                            <div key={device.instanceId} className="absolute p-1 bg-background border rounded-md shadow-lg" style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)' }}>
+                            <div key={device.instanceId} className="absolute p-1 bg-background border rounded-md shadow-lg pointer-events-none" style={{ left: device.x, top: device.y, transform: 'translate(-50%, -50%)' }}>
                                 <DeviceIcon type={baseDevice.type} className="h-5 w-5"/>
                             </div>
                         )
@@ -200,7 +234,11 @@ export default function FloorPlan({ floor, allDevicesMap, onSave, isSaving }: Fl
                                                 key={device.id}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, device.id)}
-                                                className="flex items-center gap-2 p-2 bg-muted/50 rounded-md cursor-grab active:cursor-grabbing"
+                                                onClick={() => setSelectedDeviceForPlacing(prev => prev === device.id ? null : device.id)}
+                                                className={cn(
+                                                    "flex items-center gap-2 p-2 bg-muted/50 rounded-md cursor-pointer active:cursor-grabbing",
+                                                    selectedDeviceForPlacing === device.id && "ring-2 ring-primary"
+                                                )}
                                             >
                                                 <DeviceIcon type={device.type} className="h-4 w-4 text-muted-foreground"/>
                                                 <span className="text-xs font-medium">{device.name}</span>
